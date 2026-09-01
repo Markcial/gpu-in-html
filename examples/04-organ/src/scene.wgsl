@@ -16,6 +16,10 @@ struct Params {
   resolution: vec2f,
   time: f32,
   tone: f32,
+  // Distance travelled along the wall, in world units. The page's scroll
+  // position feeds this, so scrolling the form moves the camera rather than
+  // just moving the document over a static backdrop.
+  scroll: f32,
 }
 
 @group(0) @binding(0) var<uniform> params: Params;
@@ -97,10 +101,16 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let time = params.time;
   let tone = clamp(params.tone, 0.0, 1.0);
 
-  // Fixed camera, just off the axis, facing the wall.
-  let axis = tubeCenter(VIEW_Y);
-  let radial = vec3f(cos(VIEW_ANGLE), 0.0, sin(VIEW_ANGLE));
-  let onAxis = vec3f(axis.x, VIEW_Y, axis.y);
+  // The camera moves only with the page. Scrolling slides it along the wall
+  // and turns it slightly, so the traverse curves rather than running dead
+  // straight — and because the tube's own axis wanders, the wall keeps
+  // presenting a different face.
+  let viewY = VIEW_Y + params.scroll;
+  let viewAngle = VIEW_ANGLE + params.scroll * 0.10;
+
+  let axis = tubeCenter(viewY);
+  let radial = vec3f(cos(viewAngle), 0.0, sin(viewAngle));
+  let onAxis = vec3f(axis.x, viewY, axis.y);
   let ray = rayFromUv(uv, params.resolution, onAxis + radial * STANDOFF, onAxis + radial * 3.0, 1.02);
 
   // Not black. Out of the lamp's reach there is still tissue glowing dimly,

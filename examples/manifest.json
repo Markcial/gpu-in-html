@@ -40,9 +40,9 @@
   },
   {
     "slug": "04-organ",
-    "title": "Lumen",
-    "blurb": "The same cylinder as the arm, turned inside out and looked at rather than travelled down. The camera does not move and neither does the relief: nodules sit on Voronoi seed points, which scatter far more evenly than noise, and stay where they are. The whole wall moves as one on a heartbeat — a strong pulse, a weaker one after it, then a pause — because a wave with a spatial phase slides features through frame and reads as peristalsis instead. The same waveform flushes the tissue redder on systole, so the beat reads as blood arriving rather than as the surface merely shifting.",
-    "tags": ["raymarch", "interior", "subsurface", "heartbeat"],
+    "title": "Endoluminal intake",
+    "blurb": "The same cylinder as the arm, turned inside out and looked at rather than travelled down. The camera does not move and neither does the relief: nodules sit on Voronoi seed points, which scatter far more evenly than noise, and stay where they are. The whole wall moves as one on a heartbeat — a strong pulse, a weaker one after it, then a pause — because a wave with a spatial phase slides features through frame and reads as peristalsis instead. The same waveform flushes the tissue redder on systole, so the beat reads as blood arriving. A long HTML form sits over it, and scrolling does not move the tissue past the camera — it hands the scroll position to the shader and moves the camera along the wall.",
+    "tags": ["raymarch", "interior", "heartbeat", "scroll-coupled"],
     "entry": "src/scene.wgsl",
     "still": {
       "width": 1600,

@@ -2,24 +2,20 @@ import { mount } from "@gpu-in-html/harness";
 import scene from "./scene.wgsl";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#stage");
-const slider = document.querySelector<HTMLInputElement>("#tone");
+const form = document.querySelector<HTMLFormElement>("#intake");
+const toneInput = document.querySelector<HTMLInputElement>("#tone");
+const toneValue = document.querySelector<HTMLSpanElement>("#tone-value");
 const errorEl = document.querySelector<HTMLPreElement>("#error");
 
-if (!canvas || !slider || !errorEl) throw new Error("Missing #stage, #tone or #error");
+if (!canvas || !form || !toneInput || !toneValue || !errorEl) {
+  throw new Error("Missing #stage, #intake, #tone, #tone-value or #error");
+}
 
 const readouts = {
   depth: document.querySelector<HTMLSpanElement>("#r-depth"),
-  tone: document.querySelector<HTMLSpanElement>("#r-tone"),
-  mucosa: document.querySelector<HTMLSpanElement>("#r-mucosa"),
   rate: document.querySelector<HTMLSpanElement>("#r-rate"),
+  perfusion: document.querySelector<HTMLSpanElement>("#r-perfusion"),
 };
-
-let target = Number(slider.value) / 100;
-let tone = target;
-
-slider.addEventListener("input", () => {
-  target = Number(slider.value) / 100;
-});
 
 // Beats per second (BEAT_RATE in organ.wgsl — keep the two in step). The
 // readouts derive their phase from the same constant rather than counting
@@ -35,32 +31,64 @@ const heartbeat = (beats: number) => {
   return systole + second;
 };
 
+// World units travelled along the wall per pixel scrolled. Low enough that a
+// full page of form covers a couple of units — far enough to see new tissue,
+// short enough that the wall does not blur past.
+const UNITS_PER_PIXEL = 0.0016;
+
+let scrollTarget = 0;
+let scroll = 0;
+
+const readScroll = () => {
+  scrollTarget = -window.scrollY * UNITS_PER_PIXEL;
+};
+
+readScroll();
+// Passive: this listener never calls preventDefault, and saying so lets the
+// browser keep scrolling on the compositor instead of waiting on it.
+window.addEventListener("scroll", readScroll, { passive: true });
+
+let toneTarget = Number(toneInput.value) / 100;
+let tone = toneTarget;
+
+toneInput.addEventListener("input", () => {
+  toneTarget = Number(toneInput.value) / 100;
+  toneValue.textContent = `${toneInput.value}%`;
+});
+
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+});
+
 try {
   const sketch = await mount(canvas, scene, {
     // A raymarched frame is far more expensive than a fullscreen gradient.
     // Rendering it at 2× device pixels buys nothing you can see.
     dpr: 1,
     uniforms: (ctx) => {
-      tone += (target - tone) * (1 - Math.exp(-ctx.deltaTime * 3.5));
+      // Ease both, framed in deltaTime so the feel is the same at any refresh
+      // rate. Scroll especially: wheel and trackpad events arrive in coarse
+      // jumps, and following them literally makes the camera stutter.
+      const k = 1 - Math.exp(-ctx.deltaTime * 9);
+      scroll += (scrollTarget - scroll) * k;
+      tone += (toneTarget - tone) * (1 - Math.exp(-ctx.deltaTime * 3.5));
 
-      // Same waveform the shader moves the wall with, so the number and the
-      // picture beat together.
       const pulse = heartbeat(ctx.time * BEAT_RATE);
 
-      if (readouts.depth) {
-        readouts.depth.textContent = `${(86 + pulse * 11).toFixed(0)}%`;
-      }
+      if (readouts.depth) readouts.depth.textContent = `${Math.abs(scroll).toFixed(2)} m`;
       if (readouts.rate) readouts.rate.textContent = `${Math.round(BEAT_RATE * 60)} bpm`;
-      if (readouts.tone) readouts.tone.textContent = `${(tone * 100).toFixed(0)}%`;
-      if (readouts.mucosa) {
-        readouts.mucosa.textContent = tone > 0.7 ? "contracted" : "relaxed";
+      if (readouts.perfusion) {
+        readouts.perfusion.textContent = `${(86 + pulse * 11).toFixed(0)}%`;
       }
 
-      return { tone };
+      return { tone, scroll };
     },
   });
 
-  import.meta.hot?.dispose(() => sketch.stop());
+  import.meta.hot?.dispose(() => {
+    window.removeEventListener("scroll", readScroll);
+    sketch.stop();
+  });
 } catch (error) {
   errorEl.textContent = error instanceof Error ? (error.stack ?? error.message) : String(error);
   throw error;

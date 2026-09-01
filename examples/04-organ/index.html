@@ -7,32 +7,39 @@
     <style>
       :root {
         color-scheme: dark;
-        --hot: #ff6a4a;
-        --dim: #7a7168;
-        --ink: #ece6e0;
+        --hot: #ff5a3c;
+        --dim: #9a8a86;
+        --ink: #f2e9e6;
+        --sheet: rgba(12, 5, 6, 0.80);
+        --line: rgba(255, 255, 255, 0.11);
       }
 
       * {
         box-sizing: border-box;
       }
 
-      html,
-      body {
-        margin: 0;
-        height: 100%;
-        overflow: hidden;
-        background: #070405;
-        color: var(--ink);
-        font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-        letter-spacing: 0.02em;
+      html {
+        scroll-behavior: smooth;
       }
 
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #0a0304;
+        color: var(--ink);
+        font: 14px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+
+      /* The canvas is fixed, so the page scrolls over it. Nothing about the
+         tissue is scrolled by the browser — the scroll position is handed to
+         the shader instead, and the camera moves along the wall. */
       #stage {
         position: fixed;
         inset: 0;
         width: 100%;
         height: 100%;
         display: block;
+        z-index: 0;
       }
 
       .back {
@@ -40,79 +47,179 @@
         top: 16px;
         left: 18px;
         z-index: 3;
-        font-size: 12px;
-        font-weight: 600;
+        font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
         text-decoration: none;
         color: var(--ink);
-        background: rgba(8, 5, 6, 0.55);
-        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(8, 3, 4, 0.6);
+        border: 1px solid var(--line);
         border-radius: 999px;
-        padding: 7px 14px;
-        backdrop-filter: blur(6px);
+        padding: 9px 14px;
+        backdrop-filter: blur(8px);
       }
 
       .back:hover {
-        background: rgba(8, 5, 6, 0.85);
+        background: rgba(8, 3, 4, 0.9);
       }
 
-      /* Ordinary DOM over the canvas. The shader's state is what it reports. */
-      .panel {
+      .hud {
         position: fixed;
-        left: 18px;
-        bottom: 18px;
-        z-index: 2;
-        width: min(320px, calc(100vw - 36px));
-        padding: 15px 16px 16px;
-        background: rgba(8, 5, 6, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-left: 2px solid var(--hot);
-        backdrop-filter: blur(9px);
-      }
-
-      .panel h1 {
-        margin: 0 0 2px;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-      }
-
-      .panel .sub {
-        margin: 0 0 13px;
-        color: var(--dim);
-        font-size: 11px;
-      }
-
-      .readouts {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 7px 14px;
-        margin-bottom: 13px;
-      }
-
-      .readout {
+        top: 16px;
+        right: 18px;
+        z-index: 3;
         display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        border-bottom: 1px dotted rgba(255, 255, 255, 0.13);
-        padding-bottom: 3px;
+        gap: 16px;
+        padding: 9px 14px;
+        background: rgba(8, 3, 4, 0.6);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        backdrop-filter: blur(8px);
+        font: 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
       }
 
-      .readout span:first-child {
+      .hud span span {
         color: var(--dim);
+        margin-right: 6px;
       }
 
-      .readout span:last-child {
+      .hud b {
+        font-weight: 600;
         font-variant-numeric: tabular-nums;
       }
 
-      label.slider {
-        display: block;
-        color: var(--dim);
-        font-size: 11px;
-        letter-spacing: 0.1em;
+      main {
+        position: relative;
+        z-index: 1;
+        max-width: 620px;
+        margin: 0 auto;
+        padding: 22vh 20px 20vh;
+      }
+
+      .sheet {
+        background: var(--sheet);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        backdrop-filter: blur(14px);
+        padding: 30px 30px 32px;
+        margin-bottom: 26px;
+      }
+
+      .sheet > h2 {
+        margin: 0 0 4px;
+        font: 700 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
-        margin-bottom: 7px;
+        color: var(--hot);
+      }
+
+      .sheet > p.note {
+        margin: 0 0 22px;
+        color: var(--dim);
+        font-size: 13px;
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        font-size: 30px;
+        letter-spacing: -0.02em;
+      }
+
+      .lede {
+        margin: 0;
+        color: var(--dim);
+        font-size: 14.5px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 18px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+
+      @media (max-width: 520px) {
+        .row {
+          grid-template-columns: 1fr;
+          gap: 0;
+        }
+      }
+
+      label,
+      legend {
+        font: 600 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="tel"],
+      input[type="date"],
+      input[type="number"],
+      select,
+      textarea {
+        font: inherit;
+        width: 100%;
+        color: var(--ink);
+        padding: 10px 12px;
+        border-radius: 9px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.05);
+        transition: border-color 150ms ease, background 150ms ease;
+      }
+
+      textarea {
+        min-height: 96px;
+        resize: vertical;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--hot);
+        background: rgba(255, 255, 255, 0.09);
+      }
+
+      fieldset {
+        border: none;
+        margin: 0 0 18px;
+        padding: 0;
+      }
+
+      fieldset legend {
+        padding: 0;
+        margin-bottom: 8px;
+      }
+
+      .choices {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 18px;
+      }
+
+      .choice {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 13.5px;
+        color: var(--ink);
+        text-transform: none;
+        letter-spacing: 0;
+        font-family: inherit;
+        font-weight: 400;
+      }
+
+      input[type="radio"],
+      input[type="checkbox"] {
+        accent-color: var(--hot);
+        width: 15px;
+        height: 15px;
       }
 
       input[type="range"] {
@@ -120,7 +227,7 @@
         appearance: none;
         width: 100%;
         height: 3px;
-        background: rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.2);
         outline: none;
       }
 
@@ -142,13 +249,31 @@
         cursor: ew-resize;
       }
 
-      .hint {
-        position: fixed;
-        right: 18px;
-        bottom: 20px;
-        z-index: 2;
-        color: var(--dim);
-        font-size: 11px;
+      .range-value {
+        font: 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: var(--hot);
+        font-variant-numeric: tabular-nums;
+      }
+
+      button {
+        font: inherit;
+        font-weight: 650;
+        width: 100%;
+        color: #1a0605;
+        padding: 13px;
+        border: none;
+        border-radius: 10px;
+        background: var(--hot);
+        cursor: pointer;
+        transition: filter 140ms ease, transform 140ms ease;
+      }
+
+      button:hover {
+        filter: brightness(1.08);
+      }
+
+      button:active {
+        transform: translateY(1px);
       }
 
       #error {
@@ -159,6 +284,7 @@
         padding: 12px;
         background: #240a0a;
         color: #ff9a9a;
+        font: 12px/1.5 ui-monospace, Menlo, monospace;
         white-space: pre-wrap;
       }
 
@@ -171,22 +297,165 @@
     <canvas id="stage"></canvas>
     <a class="back" href="../../">← gallery</a>
 
-    <section class="panel" id="panel">
-      <h1>Lumen</h1>
-      <p class="sub">Endoluminal survey · mucosal wall</p>
+    <div class="hud">
+      <span><span>depth</span><b id="r-depth">0.00 m</b></span>
+      <span><span>rate</span><b id="r-rate">—</b></span>
+      <span><span>perfusion</span><b id="r-perfusion">—</b></span>
+    </div>
 
-      <div class="readouts">
-        <div class="readout"><span>perfusion</span><span id="r-depth">—</span></div>
-        <div class="readout"><span>tone</span><span id="r-tone">—</span></div>
-        <div class="readout"><span>rate</span><span id="r-rate">—</span></div>
-        <div class="readout"><span>mucosa</span><span id="r-mucosa">—</span></div>
-      </div>
+    <main>
+      <form id="intake">
+        <section class="sheet">
+          <h1>Endoluminal intake</h1>
+          <p class="lede">
+            The wall behind this form is a shader. Scrolling does not move the tissue past the
+            camera — it moves the camera along the tissue.
+          </p>
+        </section>
 
-      <label class="slider" for="tone">Muscular tone</label>
-      <input id="tone" type="range" min="0" max="100" value="45" />
-    </section>
+        <section class="sheet">
+          <h2>Specimen</h2>
+          <p class="note">Identification and provenance.</p>
 
-    <p class="hint">drag the slider to change tone</p>
+          <div class="row">
+            <div class="field">
+              <label for="specimen-id">Specimen ID</label>
+              <input id="specimen-id" name="specimenId" type="text" placeholder="SPC-0041-B" />
+            </div>
+            <div class="field">
+              <label for="collected">Collected</label>
+              <input id="collected" name="collected" type="date" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="site">Site</label>
+              <select id="site" name="site">
+                <option>Proximal segment</option>
+                <option selected>Mid segment</option>
+                <option>Distal segment</option>
+                <option>Junction</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="operator">Operator</label>
+              <input id="operator" name="operator" type="text" placeholder="A. Lovelace" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="accession">Accession number</label>
+            <input id="accession" name="accession" type="number" placeholder="41" />
+          </div>
+        </section>
+
+        <section class="sheet">
+          <h2>Observations</h2>
+          <p class="note">
+            The tone control writes straight into the shader — it is a form field like any other,
+            and it is also what deepens the pulse and the folds.
+          </p>
+
+          <fieldset>
+            <legend>Appearance</legend>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="appearance" checked /> Normal</label>
+              <label class="choice"><input type="radio" name="appearance" /> Erythematous</label>
+              <label class="choice"><input type="radio" name="appearance" /> Friable</label>
+              <label class="choice"><input type="radio" name="appearance" /> Ulcerated</label>
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label for="tone">Muscular tone · <span class="range-value" id="tone-value">45%</span></label>
+            <input id="tone" name="tone" type="range" min="0" max="100" value="45" />
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="lumen">Lumen diameter (mm)</label>
+              <input id="lumen" name="lumen" type="number" placeholder="34" />
+            </div>
+            <div class="field">
+              <label for="nodules">Nodule count</label>
+              <input id="nodules" name="nodules" type="number" placeholder="12" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="findings">Findings</label>
+            <textarea id="findings" name="findings" placeholder="Free text."></textarea>
+          </div>
+
+          <fieldset>
+            <legend>Flags</legend>
+            <div class="choices">
+              <label class="choice"><input type="checkbox" /> Bleeding</label>
+              <label class="choice"><input type="checkbox" /> Oedema</label>
+              <label class="choice"><input type="checkbox" /> Exudate</label>
+              <label class="choice"><input type="checkbox" /> Stenosis</label>
+            </div>
+          </fieldset>
+        </section>
+
+        <section class="sheet">
+          <h2>Handling</h2>
+          <p class="note">Transport and contact.</p>
+
+          <div class="row">
+            <div class="field">
+              <label for="fixative">Fixative</label>
+              <select id="fixative" name="fixative">
+                <option>None</option>
+                <option selected>Formalin 10%</option>
+                <option>Glutaraldehyde</option>
+                <option>Frozen</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="temperature">Transport (°C)</label>
+              <input id="temperature" name="temperature" type="number" placeholder="4" />
+            </div>
+          </div>
+
+          <fieldset>
+            <legend>Priority</legend>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="priority" /> Routine</label>
+              <label class="choice"><input type="radio" name="priority" checked /> Urgent</label>
+              <label class="choice"><input type="radio" name="priority" /> Immediate</label>
+            </div>
+          </fieldset>
+
+          <div class="row">
+            <div class="field">
+              <label for="email">Report to</label>
+              <input id="email" name="email" type="email" placeholder="lab@example.com" />
+            </div>
+            <div class="field">
+              <label for="phone">Callback</label>
+              <input id="phone" name="phone" type="tel" placeholder="+34 000 000 000" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="notes">Handling notes</label>
+            <textarea id="notes" name="notes" placeholder="Anything the receiving lab should know."></textarea>
+          </div>
+
+          <fieldset>
+            <legend>Confirmation</legend>
+            <div class="choices">
+              <label class="choice"><input type="checkbox" /> Chain of custody recorded</label>
+              <label class="choice"><input type="checkbox" /> Consent on file</label>
+            </div>
+          </fieldset>
+
+          <button type="submit">Submit intake</button>
+        </section>
+      </form>
+    </main>
 
     <pre id="error"></pre>
     <script type="module" src="./src/main.ts"></script>

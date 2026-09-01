@@ -105,7 +105,7 @@ transfer functions and tonemapping from `@vgpu/wgsl-std/color`
 | `01-gradient` | A fullscreen fragment shader and nothing else — the smallest thing that renders. |
 | `02-cloud-form` | A real HTML `<form>` with no background of its own, over a canvas that draws the cloud serving as its chrome. A `ResizeObserver` feeds the form's measured rect to the shader, so the silhouette tracks the DOM through any reflow, and `focusin`/`focusout` swell the cloud. |
 | `03-tetsuo` | A raymarched arm coming apart. Masses erupt along the limb through smooth unions, and a cylindrically projected Voronoi separates the surface into cells of muscle, bruise, fat and something colder. A `<input type="range">` drives the mutation and the telemetry panel reads from the same number. |
-| `04-organ` | The same cylinder turned inside out and faced rather than travelled down. Fixed camera, lamp on the lens, nodules that stay put on Voronoi seed points, and a heartbeat that moves the whole wall as one body. A continuously varying mucosa carries a vessel net at two scales. |
+| `04-organ` | The same cylinder turned inside out and faced rather than travelled down, with a long HTML form over it. Lamp on the lens, nodules fixed on Voronoi seed points, and a heartbeat that moves the whole wall as one body and flushes it redder on systole. Scrolling the form moves the camera along the wall; the tone field writes straight into the shader. |
 
 Colours in a shader are authored in sRGB and converted with `srgbToLinear3`
 before use. Using picker values as if they were linear makes a mid blue roughly
@@ -113,6 +113,28 @@ four times too bright, and everything washes out. The same conversion bites the
 other way in dark scenes: sRGB `0.06` is linear `0.004`, which a vignette and a
 contrast curve will finish off entirely. A dim-but-readable room wants to be
 authored around sRGB `0.2`, not `0.05`.
+
+## Coupling the page to the shader
+
+Two examples do it, and both do the same thing: read something the browser
+already knows and hand it to the shader as a uniform.
+
+`02-cloud-form` measures the form's bounding rect with a `ResizeObserver` and
+passes it in uv space, so the cloud's silhouette is the form's own rectangle.
+`04-organ` passes the scroll position, so scrolling moves the camera along the
+wall rather than moving the document over a static backdrop — and its tone
+field is an ordinary `<input type="range">` that happens to write into a
+uniform.
+
+Two things to get right:
+
+- **Ease every input, framed in `deltaTime`.** Scroll events from a wheel or a
+  trackpad arrive in coarse jumps, and following them literally makes the
+  camera stutter. `x += (target - x) * (1 - exp(-dt * k))` behaves the same at
+  60 and 120 Hz.
+- **Register scroll listeners as `{ passive: true }`.** They never call
+  `preventDefault`, and saying so lets the browser keep scrolling on the
+  compositor instead of waiting on the handler.
 
 ## Raymarching
 
