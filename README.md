@@ -287,6 +287,37 @@ Still untested: TGSL, where shader bodies are `'use gpu'` TypeScript rather
 than WGSL strings. That is where the types-instead-of-documentation argument
 would actually pay off, and it needs the build plugin.
 
+### Decided: split by domain, not by layer
+
+Rendering stays with vgpu. Compute, if and when this repository grows any, goes
+to TypeGPU — that is what it is for, and its typed buffers infer TypeScript
+types from the GPU-side layout, which is most of the pleasure of writing
+compute at all.
+
+They do not have to meet. Rendering already gets everything it wants from
+TypeGPU at build time, through a generated `.wgsl` file, with nothing left at
+runtime.
+
+If a compute pass ever does need to feed the renderer, the precondition is that
+both sit on the same `GPUDevice` — buffers cannot cross devices. Both libraries
+support that through public API:
+
+```ts
+const device = await (await navigator.gpu.requestAdapter()).requestDevice();
+const gpu = await initFromDevice(device);          // vgpu
+const root = tgpu.initFromDevice({ device });      // typegpu
+```
+
+The handoff itself is the part to be careful with. TypeGPU's `root.unwrap()`
+gives the raw `GPUBuffer`, but vgpu's function for adopting a foreign buffer is
+marked `@internal`, so the supported route is a buffer-to-buffer copy on the
+shared device rather than aliasing. One copy per frame, which for a compute
+result is nothing.
+
+The reason to keep them apart until then: the moment both libraries own buffers
+in the same program, there are two answers to "who allocated this", and that is
+exactly the kind of seam the build-time split just removed.
+
 Two shading notes worth keeping, both learned the hard way in `03-tetsuo`:
 
 - **Texture a cylinder with `voronoiTiled`, not `voronoi2d`.** The angular
