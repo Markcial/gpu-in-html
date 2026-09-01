@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>gpu-in-html</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0c10;
+        --panel: #14161d;
+        --line: #232733;
+        --ink: #e9ecf3;
+        --muted: #8b93a7;
+        --accent: #7db3ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 72px 28px 96px;
+      }
+
+      header {
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 28px;
+        margin-bottom: 40px;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: clamp(30px, 5vw, 44px);
+        letter-spacing: -0.028em;
+      }
+
+      header p {
+        margin: 0;
+        max-width: 62ch;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.6;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.92em;
+        color: var(--accent);
+      }
+
+      #grid {
+        display: grid;
+        /* auto-fit, not auto-fill: with only a couple of examples, auto-fill
+           keeps the empty tracks and leaves a hole on the right. */
+        grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+        gap: 22px;
+      }
+
+      .card {
+        display: flex;
+        flex-direction: column;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 180ms ease, border-color 180ms ease;
+      }
+
+      .card:hover {
+        transform: translateY(-3px);
+        border-color: #39435c;
+      }
+
+      /* Reserve the aspect box up front so the grid does not reflow as the
+         stills decode. */
+      .card img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        background: #0e1016;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .card .body {
+        padding: 17px 19px 19px;
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        flex: 1;
+      }
+
+      .card h2 {
+        margin: 0;
+        font-size: 17px;
+        letter-spacing: -0.012em;
+      }
+
+      .card p {
+        margin: 0;
+        flex: 1;
+        color: var(--muted);
+        font-size: 13.5px;
+        line-height: 1.55;
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 3px;
+      }
+
+      .tag {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 3px 9px;
+      }
+
+      footer {
+        margin-top: 52px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 13.5px;
+        line-height: 1.7;
+      }
+
+      #empty {
+        color: var(--muted);
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>gpu-in-html</h1>
+        <p>
+          Reusable pure-WGSL primitives for
+          <a href="https://vgpu.sh" style="color: var(--accent)">vgpu</a>, and the examples built on
+          them. Every card opens a live WebGPU page — click through, then read its
+          <code>.wgsl</code> next to it.
+        </p>
+      </header>
+
+      <div id="grid"></div>
+
+      <footer>
+        Thumbnails are rendered headless through Dawn by <code>pnpm stills</code>, from the same
+        shaders the pages run — not screenshots. Requires a browser with WebGPU.
+      </footer>
+    </div>
+
+    <script type="module" src="./site/gallery.ts"></script>
+  </body>
+</html>

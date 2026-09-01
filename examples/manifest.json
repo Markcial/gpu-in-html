@@ -1,0 +1,28 @@
+[
+  {
+    "slug": "01-gradient",
+    "title": "Gradient",
+    "blurb": "A fullscreen fragment shader and nothing else — the smallest thing in the repo that renders. Sweeps a cosine palette around the polar angle, with a breathing ring on the radius.",
+    "tags": ["palette", "polar", "starter"],
+    "entry": "src/gradient.wgsl",
+    "still": { "width": 1600, "height": 900, "time": 2.5 }
+  },
+  {
+    "slug": "02-cloud-form",
+    "title": "Cloud form",
+    "blurb": "A real HTML form with no background of its own, over a canvas drawing the cloud that serves as its chrome. A ResizeObserver feeds the form's measured rect to the shader, so the silhouette tracks the DOM through any reflow, and focus swells the cloud.",
+    "tags": ["sdf", "dom-coupled", "noise"],
+    "entry": "src/scene.wgsl",
+    "still": {
+      "width": 1600,
+      "height": 900,
+      "time": 3.0,
+      "set": {
+        "cloudCenter": [0.5, 0.5],
+        "cloudHalf": [0.164, 0.272],
+        "pointer": [0.5, 0.5],
+        "focus": 1
+      }
+    }
+  }
+]

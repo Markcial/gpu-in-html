@@ -6,8 +6,9 @@ dist/
 # Linked worktrees this repo creates for isolated agent work.
 .claude/worktrees/
 
-# Render artifacts. Snapshots CI compares against are committed on purpose;
-# everything else a render produces is disposable.
+# Render artifacts. The gallery thumbnails under public/stills are committed on
+# purpose; everything else a render produces is disposable.
 out/
-*.local.png
-*.local.mp4
+
+# Scratch files: anything named *.local.* is throwaway.
+*.local.*

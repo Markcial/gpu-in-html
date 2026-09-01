@@ -128,10 +128,32 @@
       #error:empty {
         display: none;
       }
+
+      .back {
+        position: fixed;
+        top: 16px;
+        left: 18px;
+        z-index: 2;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(18, 48, 85, 0.14);
+        border-radius: 999px;
+        padding: 7px 14px;
+        backdrop-filter: blur(6px);
+        transition: background 150ms ease;
+      }
+
+      .back:hover {
+        background: rgba(255, 255, 255, 0.82);
+      }
     </style>
   </head>
   <body>
     <canvas id="stage"></canvas>
+    <a class="back" href="../../">← gallery</a>
 
     <main>
       <form class="cloud-form" id="cloud-form">
@@ -153,6 +175,6 @@
     </main>
 
     <pre id="error"></pre>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

@@ -46,15 +46,37 @@
       #error:empty {
         display: none;
       }
+
+      .back {
+        position: fixed;
+        top: 16px;
+        left: 18px;
+        z-index: 2;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        color: #e8e8ef;
+        background: rgba(10, 10, 14, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+        padding: 7px 14px;
+        backdrop-filter: blur(6px);
+        transition: background 150ms ease;
+      }
+
+      .back:hover {
+        background: rgba(10, 10, 14, 0.78);
+      }
     </style>
   </head>
   <body>
     <canvas id="stage"></canvas>
+    <a class="back" href="../../">← gallery</a>
     <footer>
       01 · gradient — <code>space.centered</code>, <code>space.polar</code>,
       <code>color.paletteDefault</code>, <code>shaping.pulse</code>
     </footer>
     <pre id="error"></pre>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

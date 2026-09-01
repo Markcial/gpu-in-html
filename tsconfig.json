@@ -4,15 +4,18 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["@webgpu/types"],
+    // "node" is here for vite.config.ts, which is the one file in the project
+    // that runs outside the browser.
+    "types": ["@webgpu/types", "node"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noEmit": true,
     "skipLibCheck": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true
   },
-  "include": ["examples/**/*.ts", "examples/**/*.d.ts", "*.ts"],
-  "exclude": ["node_modules", "**/dist"]
+  "include": ["examples/**/*.ts", "examples/**/*.d.ts", "site/**/*.ts", "*.ts"],
+  "exclude": ["node_modules", "dist"]
 }

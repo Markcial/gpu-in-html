@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
       '@vgpu/wgsl':
         specifier: ^0.3.1
         version: 0.3.1(@vgpu/adapter-node@0.3.1)
@@ -25,7 +28,7 @@ importers:
         version: 0.3.1
       vite:
         specifier: ^6.0.0
-        version: 6.4.3
+        version: 6.4.3(@types/node@22.20.1)
 
   examples/01-gradient:
     dependencies:
@@ -48,9 +51,6 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
-      vite:
-        specifier: ^6.0.0
-        version: 6.4.3
 
   examples/02-cloud-form:
     dependencies:
@@ -73,9 +73,6 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
-      vite:
-        specifier: ^6.0.0
-        version: 6.4.3
 
   examples/_harness:
     dependencies:
@@ -403,6 +400,9 @@ packages:
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
 
+  '@types/node@22.20.1':
+    resolution: {integrity: sha512-EANqOCF9QFyra+4pfxUcX9STKJpCLjMbObVzljIJomAWSnuSIEAvyzEU53GaajbXJEgdh0iEcPL+DGvpUd4k1Q==}
+
   '@vgpu/adapter-mock@0.3.1':
     resolution: {integrity: sha512-uZxTFPHLYd1nOxGxluvni50tsjnUTQ2eOhjJ/YwWynO7k906AD0byJxN0V6BbYb1MK/xM/EF+/cA8tKCrvY0yA==}
 
@@ -498,6 +498,9 @@ packages:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
+
+  undici-types@6.21.0:
+    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
   vgpu@0.3.1:
     resolution: {integrity: sha512-NeEETis2aCr0I9/8dy42lueNGNs3GZxL+0OmjLI82wlgPD/4WpW/XNX4xduc+ChxFqOJtjEYsz297VS9GmIuyA==}
@@ -721,6 +724,10 @@ snapshots:
 
   '@types/estree@1.0.9': {}
 
+  '@types/node@22.20.1':
+    dependencies:
+      undici-types: 6.21.0
+
   '@vgpu/adapter-mock@0.3.1(@vgpu/adapter-node@0.3.1)':
     dependencies:
       '@vgpu/core': 0.3.1(@vgpu/adapter-node@0.3.1)
@@ -851,6 +858,8 @@ snapshots:
 
   typescript@5.9.3: {}
 
+  undici-types@6.21.0: {}
+
   vgpu@0.3.1:
     dependencies:
       '@modelcontextprotocol/server': 2.0.0
@@ -867,7 +876,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  vite@6.4.3:
+  vite@6.4.3(@types/node@22.20.1):
     dependencies:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.7)
@@ -876,6 +885,7 @@ snapshots:
       rollup: 4.63.1
       tinyglobby: 0.2.17
     optionalDependencies:
+      '@types/node': 22.20.1
       fsevents: 2.3.3
 
   webgpu@0.4.0:

@@ -8,19 +8,33 @@ nothing else — no TypeScript, no runtime. vgpu resolves the import graph, drop
 what an entry shader does not use, and emits compact WGSL at build time.
 
 ```
+index.html           the gallery
+site/gallery.ts      builds the cards from examples/manifest.json
 packages/wgsl/       @gpu-in-html/wgsl — the library
+examples/manifest.json  one entry per example: blurb, tags, still settings
 examples/_harness/   dev-only glue shared by the examples (not published)
 examples/01-*/       one runnable example per idea
-scripts/             shader validation
+public/stills/       committed thumbnails, rendered by `pnpm stills`
+scripts/             shader validation, headless rendering
 ```
 
 ## Run it
 
 ```bash
 pnpm install
-pnpm dev        # examples/01-gradient on a local server
-pnpm verify     # validate every shader, typecheck, build every example
+pnpm dev        # the gallery, with every example on the same server
+pnpm verify     # validate every shader, typecheck, build the whole site
 ```
+
+`pnpm dev` serves the gallery at `/` and each example at
+`/examples/<slug>/` — one Vite app rooted at the repository, one port, and
+`vgpu` shared across the pages instead of bundled once per example. Each
+example is still its own workspace package resolving `@gpu-in-html/wgsl` by
+package name, which is what keeps the library honestly consumable.
+
+To add an example: create `examples/<slug>/` with an `index.html` and a `src/`,
+then add an entry to `examples/manifest.json`. Vite picks up the page, the
+gallery grows a card, and `pnpm stills` renders its thumbnail.
 
 WebGPU is required. If `init()` throws, the example prints the error on the
 page instead of leaving a black canvas.
@@ -31,6 +45,7 @@ The same entry shader renders without a browser, through Dawn:
 
 ```bash
 pnpm render examples/01-gradient/src/gradient.wgsl -o out/01.png -w 3840 -h 2160 -t 2.5
+pnpm stills   # re-render every gallery thumbnail from examples/manifest.json
 ```
 
 `-t` is the `time` uniform in seconds, so any frame of an animation can be
