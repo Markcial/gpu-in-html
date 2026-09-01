@@ -20,10 +20,11 @@ slider.addEventListener("input", () => {
   target = Number(slider.value) / 100;
 });
 
-// The shader advances the camera at 0.55 units per second along the tube. The
-// readout derives depth from the same constant rather than counting frames, so
-// a dropped frame cannot drift it away from what is on screen.
-const ADVANCE_PER_SECOND = 0.55;
+// The shader advances the camera at this rate along the tube (ADVANCE in
+// scene.wgsl — keep the two in step). The readout derives depth from the same
+// constant rather than counting frames, so a dropped frame cannot drift it
+// away from what is on screen.
+const ADVANCE_PER_SECOND = 0.14;
 
 try {
   const sketch = await mount(canvas, scene, {

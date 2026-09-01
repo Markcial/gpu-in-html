@@ -5,6 +5,10 @@
 // space and negative in the tissue. Marching it from the inside is the whole
 // trick — everything else follows from the camera being in the negative space
 // of an ordinary tube.
+//
+// Motion here is deliberately slow. A body is never still, but it is also
+// never busy: fast peristalsis reads as an animation loop rather than as
+// something alive.
 
 import { fbmSimplex3d } from "@vgpu/wgsl-std/noise/simplex";
 
@@ -28,13 +32,20 @@ export fn lumenSdf(p: vec3f, time: f32, tone: f32) -> f32 {
   let r = length(q);
   let angle = atan2(q.y, q.x);
 
-  // Peristalsis: constriction rings travelling along the tube. This is what
-  // makes the tunnel feel alive rather than extruded.
   // The radius has to leave real open space in front of the lens. At the
   // camera the wall is exactly `radius` away, so a tight tube plus a wide
   // field of view means the wall fills the frame and there is no lumen to see
   // down.
-  var radius = 1.75 + 0.30 * sin(p.y * 0.85 + time * 0.9) * (0.30 + tone);
+  var radius = 1.75;
+
+  // Peristalsis: constriction rings travelling along the tube, slowly. This
+  // and the breath below are the only things that move the wall, and between
+  // them they are what makes the tunnel feel alive rather than extruded.
+  radius += 0.26 * sin(p.y * 0.85 + time * 0.30) * (0.30 + tone);
+
+  // A slow global dilation, like breathing. Small amplitude on purpose: it
+  // should be felt rather than watched.
+  radius += 0.05 * sin(time * 0.42);
 
   // Longitudinal folds running down the wall.
   radius -= (0.12 + 0.20 * tone) * (0.5 + 0.5 * cos(angle * 7.0 + p.y * 0.45));
@@ -45,7 +56,7 @@ export fn lumenSdf(p: vec3f, time: f32, tone: f32) -> f32 {
   // expensive term in the march and does nothing out in the open lumen.
   if (d < 0.45) {
     let n = fbmSimplex3d(
-      vec3f(q * 2.6, p.y * 1.7) + vec3f(0.0, 0.0, time * 0.10),
+      vec3f(q * 2.6, p.y * 1.7) + vec3f(0.0, 0.0, time * 0.03),
       4,
       2.0,
       0.5,
@@ -59,8 +70,9 @@ export fn lumenSdf(p: vec3f, time: f32, tone: f32) -> f32 {
 }
 
 // Branching ridges where a noise field crosses zero — vessels under the
-// mucosa. Returns 0..1.
-export fn vessels(p: vec3f, time: f32) -> f32 {
-  let n = fbmSimplex3d(p * 2.9 + vec3f(0.0, time * 0.04, 0.0), 4, 2.1, 0.55);
-  return 1.0 - smoothstep(0.0, 0.085, abs(n));
+// mucosa. Returns 0..1. `width` sets how fine the branching reads, so the same
+// function serves both the large veins and the capillary net.
+export fn vessels(p: vec3f, time: f32, width: f32) -> f32 {
+  let n = fbmSimplex3d(p + vec3f(0.0, time * 0.012, 0.0), 4, 2.1, 0.55);
+  return 1.0 - smoothstep(0.0, width, abs(n));
 }

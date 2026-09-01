@@ -105,7 +105,7 @@ transfer functions and tonemapping from `@vgpu/wgsl-std/color`
 | `01-gradient` | A fullscreen fragment shader and nothing else — the smallest thing that renders. |
 | `02-cloud-form` | A real HTML `<form>` with no background of its own, over a canvas that draws the cloud serving as its chrome. A `ResizeObserver` feeds the form's measured rect to the shader, so the silhouette tracks the DOM through any reflow, and `focusin`/`focusout` swell the cloud. |
 | `03-tetsuo` | A raymarched arm coming apart. Masses erupt along the limb through smooth unions, and a cylindrically projected Voronoi separates the surface into cells of muscle, bruise, fat and something colder. A `<input type="range">` drives the mutation and the telemetry panel reads from the same number. |
-| `04-organ` | The same cylinder turned inside out — the camera flies down the lumen and the wall is marched from within. The only light rides the camera, peristaltic rings travel along the tube, and the wrapped Voronoi becomes mucosa. |
+| `04-organ` | The same cylinder turned inside out — the camera drifts down the lumen and the wall is marched from within. The only light rides the camera, slow peristalsis and a breath move the wall, and a continuously varying mucosa carries a vessel net at two scales. |
 
 Colours in a shader are authored in sRGB and converted with `srgbToLinear3`
 before use. Using picker values as if they were linear makes a mid blue roughly
@@ -147,6 +147,21 @@ distance falloff makes the tunnel ahead go black with no backdrop drawn at all.
 Two numbers need taming — true inverse-square leaves a lit ring at the frame
 edge and nothing else, and the void should be a deep red rather than black or
 it reads as a missing object instead of depth.
+
+Three more things separate organic from moulded, and none of them is detail:
+
+- **Vary colour continuously, not in cells.** A Voronoi is right for the arm,
+  where the tissue really is coming apart in patches. At mucosal scale the same
+  field reads as camouflage. Two low frequencies of noise inside a narrow hue
+  range is what a real membrane looks like.
+- **Wet does not mean glossy.** Mucus pools; it does not coat evenly. A weak
+  specular masked by a noise field reads wet, while an even sheen over the
+  whole wall reads as moulded plastic.
+- **Wrap the diffuse.** Light does not stop at the terminator in translucent
+  tissue. `saturate((n·l + w) / (1 + w))` with `w` around `0.4` softens it.
+
+Motion follows the same rule. A body is never still and never busy: slow
+peristalsis, a slight breath, and a drift rather than a flythrough.
 
 ## Authoring rules
 
