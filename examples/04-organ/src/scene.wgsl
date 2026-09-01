@@ -25,10 +25,15 @@ const MAX_STEPS: i32 = 90;
 const MAX_DIST: f32 = 14.0;
 const SURFACE: f32 = 0.0016;
 
-// How fast the camera travels down the tube, in units per second. Kept low: a
-// brisk flythrough reads as a ride, and the readouts in main.ts derive depth
-// from this same number.
-const ADVANCE: f32 = 0.14;
+// How fast the view drifts along the wall on its own, in units per second.
+// Kept very low: this is a wall being looked at, not a ride. The readouts in
+// main.ts derive their distance from this same number.
+const DRIFT: f32 = 0.055;
+
+// How far back from the wall the camera stands, as a fraction of the lumen
+// radius. Close enough that the surface fills the frame, far enough that
+// there is real perspective across it.
+const STANDOFF: f32 = 0.55;
 
 fn normalAt(p: vec3f, time: f32, tone: f32) -> vec3f {
   let e = vec2f(0.0020, 0.0);
@@ -66,7 +71,7 @@ fn occlusion(p: vec3f, n: vec3f, time: f32, tone: f32) -> f32 {
     acc += weight * (step - lumenSdf(p + n * step, time, tone));
     weight *= 0.65;
   }
-  return saturate(1.0 - acc * 2.2);
+  return saturate(1.0 - acc * 3.1);
 }
 
 @fragment
@@ -74,17 +79,25 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let time = params.time;
   let tone = clamp(params.tone, 0.0, 1.0);
 
-  // Travel down the tube, staying on its wandering axis so the camera never
-  // clips the wall.
-  let travelY = -time * ADVANCE;
-  let here = tubeCenter(travelY);
-  let origin = vec3f(here.x, travelY, here.y);
+  // Face the wall, not down the tube. The camera sits just off the axis and
+  // looks outward, so the surface fills the frame and curves away at the
+  // edges: a wall you are standing in front of, rather than a tunnel you are
+  // travelling down.
+  //
+  // The pointer pans across it — x swings around the circumference, y slides
+  // along the axis. Both move the camera itself, which is why this reads.
+  // Nudging a look-at target 2.6 units away by half a unit, as this did
+  // before, is an angular change small enough to look like nothing happened.
+  let pan = (params.pointer - vec2f(0.5)) * 2.0;
+  let viewAngle = pan.x * 1.30 + time * 0.020;
+  let viewY = -pan.y * 1.60 - time * DRIFT;
 
-  // Aim further down the tube, offset by the pointer so it can be steered.
-  let aheadY = travelY - 2.6;
-  let ahead = tubeCenter(aheadY);
-  let steer = (params.pointer - vec2f(0.5)) * 0.9;
-  let at = vec3f(ahead.x + steer.x, aheadY, ahead.y - steer.y);
+  let axis = tubeCenter(viewY);
+  let radial = vec3f(cos(viewAngle), 0.0, sin(viewAngle));
+  let onAxis = vec3f(axis.x, viewY, axis.y);
+
+  let origin = onAxis + radial * STANDOFF;
+  let at = onAxis + radial * 3.0;
 
   let ray = rayFromUv(uv, params.resolution, origin, at, 1.02);
 
@@ -142,7 +155,10 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     albedo = mix(albedo, srgbToLinear3(vec3f(0.38, 0.10, 0.13)), veins * 0.52);
     albedo = mix(albedo, srgbToLinear3(vec3f(0.52, 0.19, 0.20)), capillaries * 0.24);
 
-    col = albedo * (diffuse * 3.0 * ao + 0.07 * ao);
+    // The lamp gain is tuned for how far the wall actually is. Facing it at
+    // roughly a radius' standoff, everything is near, so the value that lit a
+    // receding tunnel blows this out completely.
+    col = albedo * (diffuse * 1.75 * ao + 0.05 * ao);
 
     // Light scattering forward through the thin folds, warm and close.
     col += srgbToLinear3(vec3f(0.88, 0.24, 0.18))

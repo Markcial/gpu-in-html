@@ -105,7 +105,7 @@ transfer functions and tonemapping from `@vgpu/wgsl-std/color`
 | `01-gradient` | A fullscreen fragment shader and nothing else — the smallest thing that renders. |
 | `02-cloud-form` | A real HTML `<form>` with no background of its own, over a canvas that draws the cloud serving as its chrome. A `ResizeObserver` feeds the form's measured rect to the shader, so the silhouette tracks the DOM through any reflow, and `focusin`/`focusout` swell the cloud. |
 | `03-tetsuo` | A raymarched arm coming apart. Masses erupt along the limb through smooth unions, and a cylindrically projected Voronoi separates the surface into cells of muscle, bruise, fat and something colder. A `<input type="range">` drives the mutation and the telemetry panel reads from the same number. |
-| `04-organ` | The same cylinder turned inside out — the camera drifts down the lumen and the wall is marched from within. The only light rides the camera, slow peristalsis and a breath move the wall, and a continuously varying mucosa carries a vessel net at two scales. |
+| `04-organ` | The same cylinder turned inside out and faced rather than travelled down — the camera stands off the axis looking at the wall, which fills the frame and curves away at the edges. The only light rides the camera, slow peristalsis and a breath move the surface, and a continuously varying mucosa carries a vessel net at two scales. The pointer pans across it. |
 
 Colours in a shader are authored in sRGB and converted with `srgbToLinear3`
 before use. Using picker values as if they were linear makes a mid blue roughly
@@ -162,6 +162,22 @@ Three more things separate organic from moulded, and none of them is detail:
 
 Motion follows the same rule. A body is never still and never busy: slow
 peristalsis, a slight breath, and a drift rather than a flythrough.
+
+Two framing notes, both of which cost a rewrite to learn:
+
+- **Facing a wall and travelling down a tube are different shots**, even with
+  identical geometry. Pointing the camera outward from just off the axis fills
+  the frame with surface; pointing it along the axis makes a tunnel. Only the
+  camera changes.
+- **Move the camera, not the look-at target.** Nudging a target several units
+  away by a fraction of a unit is an angular change small enough to look like
+  the input is dead. Mapping the pointer onto the camera's own position —
+  here, its angle around the axis and its height — is what makes it feel
+  connected.
+
+Lamp gain is tied to how far the subject is. The value that lit a receding
+tunnel blows out a wall at arm's length; expect to retune it whenever the
+framing changes.
 
 ## Authoring rules
 
