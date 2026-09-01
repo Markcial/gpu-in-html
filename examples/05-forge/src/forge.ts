@@ -1,19 +1,23 @@
 // Composable SDF primitives, built as TypeGPU functions.
 //
-// The point of the trial: in the pure-.wgsl library a combinator like
-// `smoothUnion` can only be a scalar helper you call by hand inside a scene
-// function you write yourself. Here a combinator takes two SDFs and *returns a
-// new SDF*, so scenes are values you assemble:
+// In the pure-.wgsl library a combinator like `smoothUnion` can only be a
+// scalar helper you call by hand inside a scene function you write yourself.
+// Here a combinator takes distance functions and *returns a new one*, so a
+// scene is a value you assemble:
 //
 //   const scene = smoothUnion(sphere(0.9), at(torus(0.7, 0.24), [1.4, 0, 0]), 0.4);
 //
 // WGSL still has no function pointers. Every combinator emits a new function
-// with its operands inlined by name, so the composition happens at generation
-// time and the GPU only ever sees ordinary monomorphic WGSL.
+// with its operands inlined by name, so composition happens at generation time
+// and the GPU only ever sees ordinary monomorphic WGSL.
+//
+// Nothing here runs in the browser. `scripts/forge-gen.ts` calls `emitModule`
+// at build time and writes a .wgsl file, which then goes through vgpu's
+// resolver like any other module — so `pnpm check` validates it, wgsl-std
+// imports work natively, and the runtime never sees TypeGPU at all.
 
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
-import bridge from "./bridge.wgsl";
 
 /** A distance function from a point to a surface. */
 export type Sdf = ReturnType<typeof sphere>;
@@ -102,13 +106,15 @@ export const repeat = (sdf: Sdf, period: readonly [number, number, number]) =>
     .$uses({ inner: sdf })
     .$name(uid("repeat"));
 
-// The one that needs wgsl-std. `forgeNoise` is not a TypeGPU function — it is
-// an identifier that resolution passes straight through, bound to the real one
-// by `compile` below.
+// `fbmSimplex3d` is not a TypeGPU function — resolution passes the identifier
+// straight through, and `emitModule` puts a real wgsl-std import at the top of
+// the generated module so vgpu's resolver binds it. No bridging, no name
+// rewriting: it is an ordinary WGSL import because the output is an ordinary
+// WGSL module.
 export const displace = (sdf: Sdf, amount: number, frequency: number) =>
   tgpu
     .fn([d.vec3f], d.f32)(`(p: vec3f) -> f32 {
-      let n = forgeNoise(p * ${f(frequency)});
+      let n = fbmSimplex3d(p * ${f(frequency)}, 4, 2.0, 0.5);
       // The displacement breaks the marcher's Lipschitz bound, so the marcher
       // below shortens every step.
       return inner(p) - n * ${f(amount)};
@@ -118,9 +124,9 @@ export const displace = (sdf: Sdf, amount: number, frequency: number) =>
 
 // ── marching ────────────────────────────────────────────────────────────────
 
-// This is the piece the pure-WGSL library documents as impossible: a marcher
-// parameterised by a scene. It is not polymorphism — a new marcher is emitted
-// per scene with the SDF inlined — but at the call site it reads as if it were.
+// The piece the pure-WGSL library documents as impossible: a marcher
+// parameterised by a scene. Not polymorphism — a new marcher is emitted per
+// scene with the SDF inlined — but at the call site it reads as if it were.
 export const marcher = (scene: Sdf, stepScale = 0.55) =>
   tgpu
     .fn([d.vec3f, d.vec3f], d.f32)(`(ro: vec3f, rd: vec3f) -> f32 {
@@ -151,36 +157,48 @@ export const normals = (scene: Sdf) =>
 
 // ── emitting ────────────────────────────────────────────────────────────────
 
-const bridgeSource = typeof bridge === "string" ? bridge : bridge.wgsl;
-
-// The resolver mangles names, so the real one has to be recovered rather than
-// assumed. If this ever returns undefined the build has changed under us and
-// the shader should fail loudly rather than silently lose its noise.
-const resolvedNoise = /fn\s+(_vgsl_[0-9a-f]+__forgeNoise)\s*\(/.exec(bridgeSource)?.[1];
-if (!resolvedNoise) {
-  throw new Error("bridge.wgsl no longer exposes forgeNoise — did the resolver tree-shake it?");
+export interface EmitOptions {
+  /** WGSL import lines to place at the top of the module. */
+  readonly imports?: readonly string[];
+  /** The functions to resolve. */
+  readonly items: readonly unknown[];
+  /**
+   * Names to mark `export` so an entry shader can import them. Give those
+   * functions a stable name with `.$name()` — the uid suffix the combinators
+   * add is there to avoid collisions between anonymous intermediates, and a
+   * module's public surface should not carry it.
+   */
+  readonly exports: readonly string[];
 }
 
 /**
- * Resolves a set of TypeGPU functions into one WGSL module, joined to the
- * wgsl-std bridge and wrapped in the fragment entry point vgpu draws through.
+ * Resolves TypeGPU functions into the text of a vgpu WGSL module.
+ *
+ * The output is an ordinary module: it declares no bindings, it imports what it
+ * needs, and everything downstream — the resolver, tree-shaking, `vgpu check`,
+ * the headless renderer — treats it exactly like a hand-written one.
  */
-export function compile(items: unknown[], entry: string): string {
-  // The keeper in bridge.wgsl exists only to survive tree-shaking, and it has
-  // to go before the module is used: it leaves a second `@fragment` behind and
-  // vgpu picked *it* as the entry point, so the first run of this rendered the
-  // raw noise field. Dropping just the attribute is not enough either —
-  // `@location` on a parameter is only legal on an entry point, so the module
-  // stops compiling. The whole function has to come out.
-  //
-  // Its body has no nested braces, which is what makes the non-greedy match
-  // safe. That is a fragile thing to rely on, so it fails loudly instead of
-  // quietly leaving the keeper in.
-  const keeper = /@fragment\s+fn\s+_keep[\s\S]*?\n\}/;
-  if (!keeper.test(bridgeSource)) {
-    throw new Error("bridge.wgsl keeper not found — the resolver's output format changed");
+export function emitModule(options: EmitOptions): string {
+  let text = tgpu.resolve(options.items as never[]);
+
+  for (const name of options.exports) {
+    const declaration = new RegExp(`(^|\\n)fn\\s+${escapeRe(name)}\\s*\\(`);
+    if (!declaration.test(text)) {
+      throw new Error(`emitModule: no function named '${name}' in the resolved output`);
+    }
+    text = text.replace(declaration, `$1export fn ${name}(`);
   }
-  const bridged = bridgeSource.replace(keeper, "");
-  const body = tgpu.resolve(items as never[]).replaceAll("forgeNoise(", `${resolvedNoise}(`);
-  return `${bridged}\n\n${body}\n\n${entry}\n`;
+
+  const header = [
+    "// Generated by scripts/forge-gen.ts — do not edit.",
+    "//",
+    "// The scene is composed in TypeScript with TypeGPU; this file is what that",
+    "// composition resolves to. Regenerate with `pnpm generate`.",
+    "",
+    ...(options.imports ?? []),
+  ].join("\n");
+
+  return `${header}\n\n${text}\n`;
 }
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

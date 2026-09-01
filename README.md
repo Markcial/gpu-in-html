@@ -249,30 +249,43 @@ TypeScript functions — and that path needs the build plugin, which was not
 tested here. With string bodies the types stop at the signature: the body is
 still an unchecked WGSL string.
 
-Verdict: worth adopting narrowly, for composition, in a new example rather than
-by migrating the library. Spike TGSL separately before going further.
+`05-forge` is the trial, and it settled the question: **the two are cleanly
+interoperable, as long as TypeGPU runs at build time.**
 
-`05-forge` is that example. The composition win is real — a scene is written as
-`displace(smoothUnion(subtract(sphere, box), at(torus)))`, each combinator
-emitting a WGSL function with its operands inlined, and it renders. So do the
-costs, and the seam took four failures to get through:
+The first pass composed the scene in the browser and handed the resolved string
+to `effect()`. That works, and it is horrible. Getting wgsl-std into the module
+took four failures: `$uses` refuses raw WGSL; vgpu's resolver tree-shakes
+anything no entry point reaches, so the bridge needs a keeper entry point;
+that keeper leaves a second `@fragment` and vgpu picked *it*, so the first
+"working" build rendered the raw noise field; and stripping just the attribute
+breaks compilation, because `@location` on a parameter is only legal on an
+entry point. The keeper has to be excised whole by regex. On top of that,
+`pnpm check` and `pnpm stills` both stop applying to a shader that does not
+exist until runtime.
 
-1. `$uses` will not take raw WGSL, so wgsl-std cannot be an external.
-2. vgpu's resolver tree-shakes anything no entry point reaches, so the bridge
-   needs a keeper entry point purely to hold the function it exports.
-3. That keeper leaves a second `@fragment` in the module and vgpu picked *it*
-   as the entry — the first run rendered the raw noise field instead of the
-   scene.
-4. Removing just the `@fragment` attribute does not work either: `@location` on
-   a parameter is only legal on an entry point, so the module stops compiling.
-   The whole keeper function has to be excised by regex from the resolved text.
+Moving generation to build time deletes every one of those problems at once.
+`scripts/forge-gen.ts` composes the scene, `emitModule` resolves it and marks
+the public functions `export`, and the result is written as
+`scene.generated.wgsl` — an ordinary vgpu module. From there nothing is
+special:
 
-So the two libraries do not force a choice — TypeGPU authors, vgpu runs, and
-the bridge lets TypeGPU code reach wgsl-std. But the join is roughly twenty
-lines of text surgery against vgpu's output format, and `pnpm check` and
-`pnpm stills` do not cover a shader assembled at runtime. `05-forge` has no
-thumbnail for that reason, which is left visible in the gallery rather than
-papered over.
+- the wgsl-std import is a plain `import` in the generated file, resolved
+  natively — no bridge, no name rewriting, no keeper;
+- `pnpm check` validates the generated module like any other;
+- `pnpm stills` renders a thumbnail, because there is an entry file again;
+- tree-shaking and the module graph work as designed;
+- and TypeGPU leaves the browser entirely. The example's bundle went from
+  183 kB to 14.5 kB when generation moved out of it.
+
+The division of labour that falls out of this is the one worth keeping.
+**vgpu owns the runtime and the tooling** — the module graph, validation,
+headless rendering, the agent-facing CLI and docs. **TypeGPU owns authoring** —
+composition, and types across the JS boundary. They meet at a `.wgsl` file,
+which is a boundary both were designed to speak.
+
+Still untested: TGSL, where shader bodies are `'use gpu'` TypeScript rather
+than WGSL strings. That is where the types-instead-of-documentation argument
+would actually pay off, and it needs the build plugin.
 
 Two shading notes worth keeping, both learned the hard way in `03-tetsuo`:
 

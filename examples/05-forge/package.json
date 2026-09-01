@@ -6,11 +6,11 @@
   "dependencies": {
     "@gpu-in-html/harness": "workspace:*",
     "@vgpu/wgsl-std": "^0.3.1",
-    "typegpu": "^0.12.4",
     "vgpu": "^0.3.1"
   },
   "devDependencies": {
     "@vgpu/wgsl": "^0.3.1",
+    "typegpu": "^0.12.4",
     "typescript": "^5.7.2"
   }
 }

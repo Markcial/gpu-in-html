@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "generate": "node scripts/forge-gen.ts",
     "check": "node scripts/check-wgsl.mjs",
     "render": "node scripts/render.mjs",
     "stills": "node scripts/stills.mjs",
@@ -19,6 +20,7 @@
     "@vgpu/wgsl": "^0.3.1",
     "@webgpu/types": "^0.1.69",
     "pngjs": "^7.0.0",
+    "typegpu": "^0.12.4",
     "typescript": "^5.7.2",
     "vgpu": "^0.3.1",
     "vite": "^6.0.0"

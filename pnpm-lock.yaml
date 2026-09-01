@@ -20,6 +20,9 @@ importers:
       pngjs:
         specifier: ^7.0.0
         version: 7.0.0
+      typegpu:
+        specifier: ^0.12.4
+        version: 0.12.4
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -126,9 +129,6 @@ importers:
       '@vgpu/wgsl-std':
         specifier: ^0.3.1
         version: 0.3.1
-      typegpu:
-        specifier: ^0.12.4
-        version: 0.12.4
       vgpu:
         specifier: ^0.3.1
         version: 0.3.1
@@ -136,6 +136,9 @@ importers:
       '@vgpu/wgsl':
         specifier: ^0.3.1
         version: 0.3.1(@vgpu/adapter-node@0.3.1)
+      typegpu:
+        specifier: ^0.12.4
+        version: 0.12.4
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
