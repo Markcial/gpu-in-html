@@ -135,21 +135,11 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   // The form's rectangle, as a rounded box in screen space. Aspect-corrected
   // so the corners stay round whatever the canvas is.
   let aspect = params.resolution.x / max(params.resolution.y, 1e-4);
-  // Local to the panel, so the noise below is a property of the shape rather
-  // than of the screen — the edge keeps its own wobble as the page scrolls.
-  let panelLocal = (uv - params.panelCenter) * vec2f(aspect, 1.0);
-
-  // Perturbing the distance before it is thresholded is what makes the outline
-  // irregular. Doing it to the *field* rather than to the mask keeps the edge
-  // a proper boundary — it stays one connected contour and the bevel below
-  // still finds it.
-  let panelWobble = fbmSimplex3d(vec3f(panelLocal * 7.5, 3.1), 3, 2.0, 0.5);
-
   let panelD = sdRoundedBox(
-    panelLocal,
+    (uv - params.panelCenter) * vec2f(aspect, 1.0),
     params.panelHalf * vec2f(aspect, 1.0),
     0.016 * aspect,
-  ) + panelWobble * 0.013;
+  );
   // With no form on the page the half-extent arrives as zero, and a rounded
   // box of zero size is still a disc of its corner radius — which would blanch
   // a stray dot in the middle of the frame. Headless renders hit exactly that.
@@ -173,13 +163,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let info = fields[i * 2u + 1u];
 
     let q = (uv - rect.xy) * vec2f(aspect, 1.0);
-
-    // Same trick, per control, with the seed in the fourth slot so no two
-    // openings share an outline. `q` is element-local, so the raggedness
-    // travels with the control instead of the opening crawling through it.
-    let wobble = fbmSimplex3d(vec3f(q * 21.0, info.w), 3, 2.0, 0.5);
-    let d = sdRoundedBox(q, rect.zw * vec2f(aspect, 1.0), info.y * aspect)
-      + wobble * 0.0062;
+    let d = sdRoundedBox(q, rect.zw * vec2f(aspect, 1.0), info.y * aspect);
 
     let inside = smoothstep(0.0012, -0.0012, d);
     let edge = smoothstep(0.0055, 0.0, abs(d));
@@ -244,11 +228,6 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let camRight = normalize(cross(radial, vec3f(0.0, 1.0, 0.0)));
     let camUp = cross(camRight, radial);
     n = normalize(n + (camRight * fieldBevel.x - camUp * fieldBevel.y) * 0.85);
-
-    // Rougher inside the openings than on the membrane around them — the floor
-    // of a cut is not smooth. Strength scales with the mask, so this costs its
-    // samples everywhere but changes nothing outside a field.
-    n = microNormal(s, n, 62.0, 0.85 * fieldInset);
 
     // The lamp rides the camera, so the light direction is the view direction.
     // True inverse-square is too aggressive: it leaves a lit ring at the very
@@ -359,17 +338,12 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // actually drives blood out of.
     albedo = mix(albedo, srgbToLinear3(vec3f(0.88, 0.66, 0.61)), panelRim * 0.55);
 
-    // Fields are depressions with fluid standing in them. Darkened by
-    // multiplying rather than replaced by a mix: that keeps the mucosa's own
-    // variation, its vessels and its nodules running through the floor of the
-    // opening. Mixing to a flat colour is what made every field the same dark
-    // rectangle.
-    albedo *= mix(1.0, 0.24, fieldInset);
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.13, 0.02, 0.035)), fieldInset * 0.30);
-
-    // The button is a welt pushed out of the wall and blanched by the stretch.
-    // Mixed short of flat, so the tissue still shows through it.
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.93, 0.86, 0.82)), fieldRaised * 0.80);
+    // Fields are depressions with a little fluid standing in them: darker than
+    // the patch around them, which is what keeps white type readable inside.
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.085, 0.014, 0.022)), fieldInset * 0.84);
+    // The button is a welt pushed up out of the wall and blanched by the
+    // stretch, so it carries dark type instead.
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.93, 0.86, 0.82)), fieldRaised * 0.92);
     // Every control is pinched pale at its edge, and brighter where it has
     // keyboard focus — the focus ring is drawn by the tissue, not by CSS.
     albedo = mix(albedo, srgbToLinear3(vec3f(0.86, 0.62, 0.58)), fieldLip * 0.42);

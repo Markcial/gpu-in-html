@@ -136,11 +136,7 @@ try {
         fieldData[at + 4] = el.tagName === "BUTTON" ? 1 : 0;
         fieldData[at + 5] = FIELD_RADIUS;
         fieldData[at + 6] = el === document.activeElement ? 1 : 0;
-        // Seed for the ragged outline. Derived from the control's position in
-        // the *document*, not the viewport, so it is stable while scrolling —
-        // an opening keeps the shape it had rather than reshuffling as it
-        // moves up the screen.
-        fieldData[at + 7] = (box.top + window.scrollY) * 0.013 + box.left * 0.006;
+        fieldData[at + 7] = 0;
         fieldCount += 1;
       }
       fieldBuffer?.write(fieldData);

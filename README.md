@@ -154,20 +154,7 @@ changes as the page scrolls. Two `vec4f` per control — rect, then kind, corner
 radius and focus — and only the ones actually on screen are uploaded, so a
 form of twenty-seven controls sends under a dozen.
 
-Three things this needs:
-
-- **Perturb the distance, not the mask.** Adding noise to the SDF *before* it
-  is thresholded gives a ragged outline that is still a proper boundary — one
-  connected contour, which the bevel can still find. Adding noise to the mask
-  afterwards just speckles the edge. Sample the noise in element-local
-  coordinates with a per-element seed, so the shape belongs to the control and
-  travels with it instead of crawling through it as the page scrolls, and
-  derive that seed from the element's position in the *document* rather than
-  the viewport or it reshuffles on every scroll.
-- **Darken by multiplying, not by mixing to a colour.** Mixing a field's
-  interior toward a flat dark value makes every one of them the same rectangle.
-  Multiplying keeps the mucosa's variation, its vessels and its nodules running
-  through the floor of the opening.
+Two things this needs:
 
 - **A tilted normal, not just a darker colour.** Accumulate the outward
   direction along each control's edge in screen space, map it into world space
