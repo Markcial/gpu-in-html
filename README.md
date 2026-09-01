@@ -105,7 +105,7 @@ transfer functions and tonemapping from `@vgpu/wgsl-std/color`
 | `01-gradient` | A fullscreen fragment shader and nothing else — the smallest thing that renders. |
 | `02-cloud-form` | A real HTML `<form>` with no background of its own, over a canvas that draws the cloud serving as its chrome. A `ResizeObserver` feeds the form's measured rect to the shader, so the silhouette tracks the DOM through any reflow, and `focusin`/`focusout` swell the cloud. |
 | `03-tetsuo` | A raymarched arm coming apart. Masses erupt along the limb through smooth unions, and a cylindrically projected Voronoi separates the surface into cells of muscle, bruise, fat and something colder. A `<input type="range">` drives the mutation and the telemetry panel reads from the same number. |
-| `04-organ` | The same cylinder turned inside out and faced rather than travelled down. Fixed camera, lamp on the lens, and the only motion is the tissue itself: slow peristalsis and a breath. A continuously varying mucosa carries a vessel net at two scales, and micro-relief on the normals keeps the surface matte. |
+| `04-organ` | The same cylinder turned inside out and faced rather than travelled down. Fixed camera, lamp on the lens, nodules that stay put on Voronoi seed points, and a heartbeat that moves the whole wall as one body. A continuously varying mucosa carries a vessel net at two scales. |
 
 Colours in a shader are authored in sRGB and converted with `srgbToLinear3`
 before use. Using picker values as if they were linear makes a mid blue roughly
@@ -194,6 +194,25 @@ Three more things separate tissue from a mirror, in the order they mattered:
   not travel through it. Scrolling noise makes the surface boil, and against
   high-frequency shading that boiling is most of what reads as restlessness
   even when every rate is already slow.
+
+Placing features and moving them are separate problems, and both have a right
+answer here:
+
+- **Scatter with a Voronoi, not with noise.** fbm clumps: it gives lumpy
+  regions with bare patches between them. A Voronoi's feature points are close
+  to evenly spaced, so domes placed on them cover a surface the way nodules on
+  a real membrane do.
+- **Fade the dome out before the cell border.** `f1` is continuous but its
+  gradient is not — it kinks wherever the nearest feature changes — so
+  displacing a surface by it creases along every border and those creases
+  render as hard straight lines. `f2 - f1` goes to zero exactly there, so
+  multiplying by `smoothstep(0, w, f2 - f1)` flattens the displacement wherever
+  the kink is.
+- **A pulse is not a wave.** Anything with a spatial phase slides features
+  through frame, which reads as peristalsis. For tissue that is simply alive,
+  move the entire surface together and shape the motion in time instead: a
+  strong pulse, a weaker one after it, then a pause. A plain sine reads as
+  breathing; the asymmetry and the gap are what make it a beat.
 
 **Measure motion, do not judge it by eye.** Render the same shader at two
 timestamps and compare pixels, then render two timestamps a frame apart to

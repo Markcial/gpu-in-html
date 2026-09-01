@@ -6,18 +6,27 @@
 // trick — everything else follows from the camera being in the negative space
 // of an ordinary tube.
 //
-// Motion here is deliberately slow. A body is never still, but it is also
-// never busy: fast peristalsis reads as an animation loop rather than as
-// something alive.
+// Nothing here travels. The relief is fixed to the wall and the only motion is
+// a pulse that moves the entire surface at once. A wave with a spatial phase
+// slides features through the frame, which reads as peristalsis rather than as
+// tissue that is simply alive.
 
 import { fbmSimplex3d } from "@vgpu/wgsl-std/noise/simplex";
+import { voronoiTiled, cellRandom } from "@gpu-in-html/wgsl/voronoi";
 
-// Radians per second of the breathing dilation. main.ts reads the same phase
-// for its perfusion readout, so keep the two in step.
-export const BREATH_RATE: f32 = 0.16;
+const TAU: f32 = 6.28318530717958647692;
 
-// Where the lumen's axis sits at a given height. The tube wanders, so you
-// never see straight through it — a straight tube reads as a pipe, not a gut.
+// Beats per second. 0.8 is 48 bpm — a resting rate. main.ts reports the same
+// number, so keep the two in step.
+export const BEAT_RATE: f32 = 0.8;
+
+// How many bumps go around the circumference and along each unit of length.
+// The first must be a whole number: it is the Voronoi's tiling period.
+const BUMPS_AROUND: f32 = 15.0;
+const BUMPS_ALONG: f32 = 2.2;
+
+// Where the lumen's axis sits at a given height. The tube wanders, so the wall
+// is never a flat plane facing the lens.
 export fn tubeCenter(y: f32) -> vec2f {
   return vec2f(
     sin(y * 0.41) * 0.60 + sin(y * 0.17 + 1.7) * 0.34,
@@ -25,11 +34,46 @@ export fn tubeCenter(y: f32) -> vec2f {
   );
 }
 
+// A heartbeat, in 0..1, from a phase measured in beats.
+//
+// Two pulses — a strong one and a weaker one just after — then a long pause. A
+// plain sine gives an even in-and-out that reads as breathing; the asymmetry
+// and the gap are what make it read as a beat.
+export fn heartbeat(beats: f32) -> f32 {
+  let phase = fract(beats);
+  let systole = exp(-pow((phase - 0.10) * 13.0, 2.0));
+  let second = exp(-pow((phase - 0.27) * 15.0, 2.0)) * 0.5;
+  return systole + second;
+}
+
+// Bumps, spread evenly over the wall and fixed to it.
+//
+// The seed points come from a Voronoi rather than from fbm on purpose. Noise
+// clumps: it gives lumpy regions with bare patches between them. A Voronoi's
+// feature points are close to evenly spaced, so domes placed on them scatter
+// across the whole surface the way nodules on a real membrane do.
+//
+// The angular axis wraps, so the field closes with no seam where the wall
+// meets itself.
+fn bumpField(angle: f32, y: f32) -> f32 {
+  let uv = vec2f((angle / TAU + 0.5) * BUMPS_AROUND, y * BUMPS_ALONG);
+  let cell = voronoiTiled(uv, BUMPS_AROUND);
+  let size = 0.30 + 0.14 * cellRandom(cell.cell, 5u);
+  let height = 0.55 + 0.45 * cellRandom(cell.cell, 61u);
+  let dome = smoothstep(size, 0.0, cell.f1) * height;
+
+  // f1 is continuous but its gradient is not: it kinks wherever the nearest
+  // feature changes. Displacing a surface by it directly creases along every
+  // cell border, and those creases render as hard straight lines across the
+  // wall. f2 - f1 goes to zero exactly on those borders, so fading the dome
+  // out with it guarantees the displacement is flat wherever the kink is.
+  return dome * smoothstep(0.0, 0.26, cell.f2 - cell.f1);
+}
+
 // Signed distance from a point in the lumen to the wall: positive in the open
 // space, shrinking to zero at the tissue.
 //
-// `tone` (0..1) is muscular tone: it deepens the peristaltic rings and the
-// longitudinal folds, and roughens the mucosa.
+// `tone` (0..1) is muscular tone: it deepens the pulse and the folds.
 export fn lumenSdf(p: vec3f, time: f32, tone: f32) -> f32 {
   let centre = tubeCenter(p.y);
   let q = p.xz - centre;
@@ -38,60 +82,42 @@ export fn lumenSdf(p: vec3f, time: f32, tone: f32) -> f32 {
 
   // The radius has to leave real open space in front of the lens. At the
   // camera the wall is exactly `radius` away, so a tight tube plus a wide
-  // field of view means the wall fills the frame and there is no lumen to see
-  // down.
+  // field of view means the wall fills the frame.
   var radius = 1.75;
 
-  // Peristalsis: constriction rings travelling along the tube. These and the
-  // breath below are the only things that move at all — the camera is fixed —
-  // and they are deliberately near the threshold of noticing. Anything faster
-  // reads as an animation playing rather than as tissue that happens to be
-  // alive.
-  // Amplitude matters more than rate here. At 0.26 against a radius of 1.75
-  // the wall swells by an eighth of the lumen, and a bulge that large sweeping
-  // through frame is read as motion no matter how slowly it travels.
-  // The rate is what to watch, not just the amplitude. The wave's spatial
-  // frequency is 0.85 rad per unit and roughly 1.4 units of wall are in frame,
-  // so a phase rate of 0.09 slides the whole ring pattern across a quarter of
-  // the frame in three seconds. At 0.035 it takes long enough that you notice
-  // it only if you watch, which is the target.
-  radius += 0.07 * sin(p.y * 0.85 + time * 0.035) * (0.30 + tone);
+  // The pulse. No spatial term, so the whole wall moves as one body.
+  radius += 0.06 * heartbeat(time * BEAT_RATE) * (0.55 + tone * 0.70);
 
-  // A slow global dilation, like breathing.
-  radius += 0.018 * sin(time * BREATH_RATE);
-
-  // Longitudinal folds running down the wall.
-  radius -= (0.12 + 0.20 * tone) * (0.5 + 0.5 * cos(angle * 7.0 + p.y * 0.45));
+  // Longitudinal folds. Static, and shallow — the wall is smooth between its
+  // bumps, not corrugated.
+  radius -= (0.05 + 0.08 * tone) * (0.5 + 0.5 * cos(angle * 7.0 + p.y * 0.45));
 
   var d = radius - r;
 
-  // Mucosal texture, only worth evaluating near the wall — it is the most
-  // expensive term in the march and does nothing out in the open lumen.
-  //
-  // Note there is no time in this term. The wall's *shape* moves — it breathes
-  // and peristalsis runs along it — but its texture does not travel through
-  // it. Scrolling the noise as well makes the surface boil, and against
-  // high-frequency shading that boiling is most of what reads as "too much
-  // movement" even when every rate is already slow.
+  // Relief, only worth evaluating near the wall — it is the most expensive
+  // term in the march and does nothing out in the open lumen.
   if (d < 0.45) {
-    let n = fbmSimplex3d(vec3f(q * 2.6, p.y * 1.7), 4, 2.0, 0.5);
-    d -= n * (0.09 + 0.13 * tone);
+    d -= bumpField(angle, p.y) * (0.11 + 0.06 * tone);
+    // A little noise so the domes are not perfectly regular. Small: the tissue
+    // between bumps should read as smooth.
+    d -= fbmSimplex3d(vec3f(q * 2.6, p.y * 1.7), 3, 2.0, 0.5) * 0.030;
   }
 
   // The displacement breaks the Lipschitz bound the marcher relies on, so a
-  // full step would cut through a fold. Shortening every step is the fix.
-  return d * 0.60;
+  // full step would cut through a bump. Shortening every step is the fix, and
+  // it has to be short enough for the rays that graze the wall at the edge of
+  // frame — those travel furthest per unit of surface crossed and are the
+  // first to tunnel through a dome and leave a hard streak behind.
+  return d * 0.48;
 }
 
 // Texture space for the wall, anchored to an undeformed cylinder.
 //
 // Everything that decorates the surface — colour, vessels, micro-relief — has
-// to be sampled here rather than at the world-space hit point. The wall moves:
-// it breathes and peristalsis runs along it, so the hit point slides in and
-// out radially. Sample world space and the whole pattern swims across the
-// tissue as it moves, which reads as boiling static and, worse, as a surface
-// the texture is not attached to. Projecting back to a fixed radius throws
-// away exactly the component that moves.
+// to be sampled here rather than at the world-space hit point. The wall pulses,
+// so the hit point slides in and out radially; sample world space and the whole
+// pattern swims across the tissue as it moves. Projecting back to a fixed
+// radius throws away exactly the component that moves.
 export fn skin(p: vec3f) -> vec3f {
   let q = p.xz - tubeCenter(p.y);
   let angle = atan2(q.y, q.x);
@@ -102,8 +128,7 @@ export fn skin(p: vec3f) -> vec3f {
 // mucosa. Returns 0..1. `width` sets how fine the branching reads, so the same
 // function serves both the large veins and the capillary net.
 //
-// Static by design: vessels are anatomy, not weather. Drifting them makes the
-// whole surface crawl.
+// Static by design: vessels are anatomy, not weather.
 export fn vessels(p: vec3f, width: f32) -> f32 {
   let n = fbmSimplex3d(p, 4, 2.1, 0.55);
   return 1.0 - smoothstep(0.0, width, abs(n));

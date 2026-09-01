@@ -86,7 +86,10 @@ fn occlusion(p: vec3f, n: vec3f, time: f32, tone: f32) -> f32 {
     acc += weight * (step - lumenSdf(p + n * step, time, tone));
     weight *= 0.65;
   }
-  return saturate(1.0 - acc * 3.1);
+  // A light touch. Driven hard, this is what digs the creases to black and
+  // splits the image into pale ridges and dark pits — the tissue should read
+  // as one material at one value, shaped by light rather than by contrast.
+  return saturate(1.0 - acc * 2.2);
 }
 
 @fragment
@@ -120,9 +123,11 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // pattern stays stuck to the tissue while the wall breathes underneath it.
     let s = skin(p);
 
-    // Two scales of micro-relief: pores, then the grain between them.
-    var n = microNormal(s, geometric, 9.0, 1.30);
-    n = microNormal(s, n, 34.0, 0.75);
+    // Two scales of micro-relief: pores, then the grain between them. Gentle —
+    // enough to stop the specular reading as polished, not enough to make the
+    // membrane look rough. The bumps in the distance field carry the relief.
+    var n = microNormal(s, geometric, 9.0, 0.45);
+    n = microNormal(s, n, 34.0, 0.22);
 
     // The lamp rides the camera, so the light direction is the view direction.
     // True inverse-square is too aggressive: it leaves a lit ring at the very
@@ -143,36 +148,44 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let deep = fbmSimplex3d(s * 0.85 + vec3f(0.0, 0.0, 3.7), 3, 2.0, 0.5);
     let thin = fbmSimplex3d(s * 2.30 + vec3f(5.1, 0.0, 0.0), 3, 2.0, 0.5);
 
+    // A narrow range on purpose. Real mucosa is one colour with slight
+    // variation, not a marbled pattern; widening these endpoints is what turned
+    // the wall into a map of light and dark regions.
     var albedo = mix(
-      srgbToLinear3(vec3f(0.56, 0.26, 0.25)), // congested
-      srgbToLinear3(vec3f(0.74, 0.46, 0.42)), // thin and pale
+      srgbToLinear3(vec3f(0.63, 0.35, 0.33)),
+      srgbToLinear3(vec3f(0.72, 0.46, 0.43)),
       saturate(deep * 0.95 + 0.5),
     );
     albedo = mix(
       albedo,
-      srgbToLinear3(vec3f(0.66, 0.55, 0.43)),
-      saturate(thin * 0.75 + 0.25) * 0.20,
+      srgbToLinear3(vec3f(0.70, 0.53, 0.45)),
+      saturate(thin * 0.75 + 0.25) * 0.10,
     );
-    albedo *= 0.90 + 0.18 * (simplex3d(s * 21.0) * 0.5 + 0.5);
+    albedo *= 0.95 + 0.08 * (simplex3d(s * 21.0) * 0.5 + 0.5);
 
     // Vessels at two scales: a few large veins, and a fine net over
     // everything. The net is what actually sells it — a single scale of
     // branching reads as cracks.
     let veins = vessels(s * 0.95, 0.075);
     let capillaries = vessels(s * 3.10 + vec3f(9.3, 2.1, 4.7), 0.16);
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.38, 0.10, 0.13)), veins * 0.52);
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.52, 0.19, 0.20)), capillaries * 0.24);
+    // Vessels sit under the mucosa, so they show through rather than being
+    // drawn on it — a much lighter mix than a surface marking would take.
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.47, 0.20, 0.22)), veins * 0.30);
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.56, 0.28, 0.28)), capillaries * 0.14);
 
     // The lamp gain is tuned for how far the wall actually is. Facing it at
     // roughly a radius' standoff, everything is near, so the value that lit a
     // receding tunnel blows this out completely.
-    col = albedo * (diffuse * 1.75 * ao + 0.05 * ao);
+    // A generous ambient term relative to the lamp. Lifting the floor is what
+    // keeps the shadows off black and holds the whole wall inside one value
+    // range instead of splitting it into lit and unlit halves.
+    col = albedo * (diffuse * 1.55 * ao + 0.16 * ao);
 
     // Light scattering forward through the thin folds, warm and close.
     col += srgbToLinear3(vec3f(0.88, 0.24, 0.18))
       * pow(saturate(1.0 - abs(facing)), 2.4)
       * attenuation
-      * (0.38 + tone * 0.30);
+      * (0.24 + tone * 0.18);
 
     // Barely any specular, and broad rather than tight. Mucosa is damp, not
     // polished: a narrow bright lobe over a smooth surface is exactly what
@@ -188,13 +201,15 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     col = fog(col, voidColor, t, 0.14);
   }
 
-  col = halation(col, srgbToLinear3(vec3f(1.0, 0.34, 0.22)), 0.72, 0.15);
+  col = halation(col, srgbToLinear3(vec3f(1.0, 0.34, 0.22)), 0.78, 0.09);
   col = tonemapAces(col);
-  col = contrast(col, 1.05);
-  col *= 1.0 - vignette(uv, 0.40, 0.68);
+  // Below 1: flatten rather than crush. The grade should not be adding the
+  // black-and-white separation the shading was just tuned to avoid.
+  col = contrast(col, 1.0);
+  col *= 1.0 - vignette(uv, 0.20, 0.62);
   // Grain is reseeded every frame, so it is a real contributor to how busy the
   // image feels even though nothing in the scene is moving because of it.
-  col = applyGrain(col, uv, params.resolution, time, 0.055);
+  col = applyGrain(col, uv, params.resolution, time, 0.032);
 
   return vec4f(linearToSrgb3(max(col, vec3f(0.0))), 1.0);
 }
