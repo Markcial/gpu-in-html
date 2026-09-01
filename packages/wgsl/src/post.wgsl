@@ -32,6 +32,13 @@ export fn applyGrain(color: vec3f, uv: vec2f, resolution: vec2f, time: f32, amou
   return color + vec3f(grain(uv, resolution, time) * amount * weight);
 }
 
+// Exponential distance fog. Density is per unit of distance; the falloff is
+// exponential rather than linear because that is what actually happens, and
+// because a linear ramp gives a visible edge where it reaches full strength.
+export fn fog(color: vec3f, fogColor: vec3f, distance: f32, density: f32) -> vec3f {
+  return mix(fogColor, color, exp(-max(distance, 0.0) * density));
+}
+
 // Pivoted contrast around mid-grey. Values above 1 crush, below 1 flatten.
 export fn contrast(color: vec3f, amount: f32) -> vec3f {
   return max((color - vec3f(0.5)) * amount + vec3f(0.5), vec3f(0.0));

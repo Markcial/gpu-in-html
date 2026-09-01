@@ -90,7 +90,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 | `@gpu-in-html/wgsl/camera` | `Ray`, `rayFromUv`, `lookAt`, `orbit` |
 | `@gpu-in-html/wgsl/voronoi` | `voronoiTiled`, `cellRandom` — a Voronoi whose x axis wraps, for cylindrical projections |
 | `@gpu-in-html/wgsl/color` | `palette`, `paletteDefault`, Oklab/Oklch, `mixOklab` |
-| `@gpu-in-html/wgsl/post` | `vignette`, `grain`, `applyGrain`, `contrast`, `halation` |
+| `@gpu-in-html/wgsl/post` | `vignette`, `grain`, `applyGrain`, `contrast`, `halation`, `fog` |
 
 This package only holds what `@vgpu/wgsl-std` does not. Take hashing and noise
 from `@vgpu/wgsl-std` (`hash`, `noise`, `noise/perlin`, `noise/simplex`),
@@ -105,6 +105,7 @@ transfer functions and tonemapping from `@vgpu/wgsl-std/color`
 | `01-gradient` | A fullscreen fragment shader and nothing else — the smallest thing that renders. |
 | `02-cloud-form` | A real HTML `<form>` with no background of its own, over a canvas that draws the cloud serving as its chrome. A `ResizeObserver` feeds the form's measured rect to the shader, so the silhouette tracks the DOM through any reflow, and `focusin`/`focusout` swell the cloud. |
 | `03-tetsuo` | A raymarched arm coming apart. Masses erupt along the limb through smooth unions, and a cylindrically projected Voronoi separates the surface into cells of muscle, bruise, fat and something colder. A `<input type="range">` drives the mutation and the telemetry panel reads from the same number. |
+| `04-organ` | The same cylinder turned inside out — the camera flies down the lumen and the wall is marched from within. The only light rides the camera, peristaltic rings travel along the tube, and the wrapped Voronoi becomes mucosa. |
 
 Colours in a shader are authored in sRGB and converted with `srgbToLinear3`
 before use. Using picker values as if they were linear makes a mid blue roughly
@@ -136,6 +137,16 @@ Two shading notes worth keeping, both learned the hard way in `03-tetsuo`:
   fires hardest exactly where the surface already faces the light — nothing is
   in the way, so the term saturates and washes every other colour out.
   Weight it by `1 - diffuse`.
+
+Interiors invert the whole setup, and `04-organ` is the reference. The field is
+positive in the open space and negative in the tissue, so marching it from
+inside is the only change the geometry needs. The lighting is what actually
+sells it: put the lamp on the camera, and the light direction, the view
+direction and the specular half-vector all collapse to the same vector while
+distance falloff makes the tunnel ahead go black with no backdrop drawn at all.
+Two numbers need taming — true inverse-square leaves a lit ring at the frame
+edge and nothing else, and the void should be a deep red rather than black or
+it reads as a missing object instead of depth.
 
 ## Authoring rules
 
