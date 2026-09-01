@@ -175,7 +175,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     var n = microNormal(s, geometric, 9.0, 0.45);
     n = microNormal(s, n, 34.0, 0.22);
     // Flattened under the sheet: something pressing on a membrane smooths it.
-    n = normalize(mix(n, geometric, underPanel * 0.92));
+    n = normalize(mix(n, geometric, underPanel * 0.55));
 
     // The lamp rides the camera, so the light direction is the view direction.
     // True inverse-square is too aggressive: it leaves a lit ring at the very
@@ -267,7 +267,9 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // drawn on it — a much lighter mix than a surface marking would take.
     // Engorged rather than emptied, so they hold up better inside the patch —
     // but still damped, or the branching competes with the type.
-    let vesselFade = 1.0 - underPanel * 0.55;
+    // Barely damped now. Vessels crossing under the text are most of what
+    // stops the patch reading as a separate surface.
+    let vesselFade = 1.0 - underPanel * 0.30;
     albedo = mix(albedo, srgbToLinear3(vec3f(0.60, 0.11, 0.13)), capillaries * 0.16 * vesselFade);
     // Deoxygenated blood under a translucent membrane reads blue-violet, not
     // blue. Kept low: these should be noticed on the second look.
@@ -281,10 +283,15 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // the tissue is actually pinched, and blood trapped inside it pools and
     // darkens toward venous red. That gives white type a ground dark enough to
     // sit on while the region stays unmistakably tissue.
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.195, 0.022, 0.030)), underPanel * 0.90);
+    // Mixed well short of opaque. At 0.9 the patch became its own flat
+    // surface and the form was back to sitting on a panel, just a darker one;
+    // holding it near 0.6 keeps the mucosa's variation, its nodules and its
+    // vessels legible straight through the region the type sits on, which is
+    // the whole point of not drawing a panel.
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.215, 0.030, 0.038)), underPanel * 0.62);
     // The pinch line itself does blanch — that is the one place the pressure
-    // actually drives blood out of.
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.88, 0.66, 0.61)), panelRim * 0.55);
+    // actually drives blood out of. Softened to match.
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.84, 0.66, 0.62)), panelRim * 0.34);
 
     // The lamp gain is tuned for how far the wall actually is. Facing it at
     // roughly a radius' standoff, everything is near, so the value that lit a

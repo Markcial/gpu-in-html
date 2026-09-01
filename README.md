@@ -140,6 +140,15 @@ Which direction to take it is a typography decision, not a physiological one.
 Congestion darkens, which suits white type; blanching lightens, which suits
 dark type. Both are real; pick the one that matches the palette.
 
+Then take the opacity most of the way back off. Mixed near opaque, the treated
+region becomes its own flat surface and the form is sitting on a panel again —
+just one drawn by the shader instead of by CSS. Held around 0.6, the mucosa's
+variation, its nodules and its vessels stay legible straight through the region
+the type sits on, and *that* is what reads as integrated. The same applies to
+the CSS: pull the accent off full saturation, the text off pure white, and the
+field fills down to a few percent. Anything that stays crisp and pure against
+tissue reads as chrome dropped on top of it.
+
 ### The DOM can be sandwiched between two canvases
 
 A canvas is not restricted to sitting behind the page. Give a second one a

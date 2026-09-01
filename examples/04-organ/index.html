@@ -9,10 +9,13 @@
         color-scheme: dark;
         /* Red and white. Read against the congested patch the shader darkens
            under the form — not against a panel, because there is no panel. */
-        --ink: #fdf2f0;
-        --dim: #ea9d92;
-        --hot: #ff5340;
-        --hair: rgba(255, 255, 255, 0.17);
+        /* Pulled back from pure white and from a saturated accent. Against
+           tissue those two read as UI chrome dropped on top; warmed and
+           desaturated they sit in the same family as the wall. */
+        --ink: #f3e3de;
+        --dim: #d3a29a;
+        --hot: #e5705c;
+        --hair: rgba(255, 255, 255, 0.10);
       }
 
       * {
@@ -174,12 +177,14 @@
         border: 1px solid var(--hair);
         /* Translucent, so the tissue's own value shows through the field and
            the inputs read as pressed into the membrane rather than laid on it. */
-        background: rgba(255, 255, 255, 0.07);
+        /* Barely there. The field is mostly the tissue behind it, lifted just
+           enough to read as a surface you can type into. */
+        background: rgba(255, 255, 255, 0.038);
         transition: border-color 150ms ease, background 150ms ease;
       }
 
       ::placeholder {
-        color: rgba(255, 236, 232, 0.38);
+        color: rgba(255, 236, 232, 0.30);
       }
 
       textarea {
@@ -192,7 +197,7 @@
       textarea:focus {
         outline: none;
         border-color: var(--hot);
-        background: rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.085);
       }
 
       fieldset {
@@ -234,7 +239,7 @@
         appearance: none;
         width: 100%;
         height: 3px;
-        background: rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.15);
         outline: none;
       }
 
@@ -269,11 +274,13 @@
         /* White on the red patch, inverting the type everywhere else — the two
            colours are the whole palette, so the primary action is simply the
            one place they swap. */
-        color: #8a1508;
+        color: #7d1a0d;
         padding: 13px;
         border: none;
         border-radius: 9px;
-        background: #fbf1ee;
+        /* Translucent rather than solid, so even the one opaque-looking
+           element still has tissue moving underneath it. */
+        background: rgba(246, 231, 226, 0.84);
         cursor: pointer;
         transition: filter 140ms ease, transform 140ms ease;
       }
@@ -318,8 +325,9 @@
         <section>
           <h1>Endoluminal intake</h1>
           <p class="lede">
-            There is no panel behind this form. The wall congests where the form presses on it,
-            pinched pale at the rim and pooling dark inside, and the text sits on the tissue.
+            There is no panel behind this form. The wall congests a little where the form presses
+            on it — enough to carry the type, not enough to hide the nodules and vessels still
+            running underneath it.
           </p>
         </section>
 
