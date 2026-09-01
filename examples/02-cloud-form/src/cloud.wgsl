@@ -3,12 +3,8 @@
 // Pure module. The shape is built from the form's real measured rectangle, so
 // the silhouette always contains the inputs no matter how the page reflows.
 
-import {
-  sdCircle,
-  sdRoundedBox,
-  opSmoothUnion,
-  opSmoothIntersect,
-} from "@gpu-in-html/wgsl/shape2d";
+import { sdCircle, sdRoundedBox } from "@gpu-in-html/wgsl/shape2d";
+import { opSmoothUnion, opSmoothIntersect } from "@gpu-in-html/wgsl/sdf";
 import { fbmSimplex2d } from "@vgpu/wgsl-std/noise/simplex";
 
 // Signed distance to the cloud, in form units: `q` is the fragment position

@@ -24,5 +24,18 @@
         "focus": 1
       }
     }
+  },
+  {
+    "slug": "03-tetsuo",
+    "title": "Mutation",
+    "blurb": "A raymarched mass of flesh straining out of itself, after the Tetsuo transformation. Lobes erupt from a core through smooth unions, fbm displaces the surface, and light bled through the thin parts gives it the volume a flat 2D field cannot. A slider drives the whole thing.",
+    "tags": ["raymarch", "sdf-3d", "subsurface", "grain"],
+    "entry": "src/scene.wgsl",
+    "still": {
+      "width": 1600,
+      "height": 900,
+      "time": 6.0,
+      "set": { "pointer": [0.42, 0.46], "mutation": 0.85 }
+    }
   }
 ]

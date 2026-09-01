@@ -84,8 +84,12 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 | --- | --- |
 | `@gpu-in-html/wgsl/space` | `centered`, `flipY`, `rot2`, `rotate`, `polar`, `tile`, `kaleidoscope` |
 | `@gpu-in-html/wgsl/shaping` | `remap`, `aastep`, `sdFill`, `sdStroke`, `pulse`, `easeInOutCubic` |
-| `@gpu-in-html/wgsl/shape2d` | `sdCircle`, `sdBox`, `sdRoundedBox`, `sdSegment`, `sdStar`, and `opUnion` / `opSubtract` / `opIntersect` in hard and smooth forms |
+| `@gpu-in-html/wgsl/sdf` | `opUnion` / `opSubtract` / `opIntersect` in hard and smooth forms, plus `opRound` and `opOnion`. Operate on distances, so they are shared by 2D and 3D |
+| `@gpu-in-html/wgsl/shape2d` | `sdCircle`, `sdBox`, `sdRoundedBox`, `sdSegment`, `sdStar` |
+| `@gpu-in-html/wgsl/shape3d` | `sdSphere`, `sdBox`, `sdRoundBox`, `sdTorus`, `sdCapsule`, `sdPlane`, `sdEllipsoid`, `opRepeat`, `opMirror`, `opTwist`, `rotX`, `rotY` |
+| `@gpu-in-html/wgsl/camera` | `Ray`, `rayFromUv`, `lookAt`, `orbit` |
 | `@gpu-in-html/wgsl/color` | `palette`, `paletteDefault`, Oklab/Oklch, `mixOklab` |
+| `@gpu-in-html/wgsl/post` | `vignette`, `grain`, `applyGrain`, `contrast`, `halation` |
 
 This package only holds what `@vgpu/wgsl-std` does not. Take hashing and noise
 from `@vgpu/wgsl-std` (`hash`, `noise`, `noise/perlin`, `noise/simplex`),
@@ -99,10 +103,27 @@ transfer functions and tonemapping from `@vgpu/wgsl-std/color`
 | --- | --- |
 | `01-gradient` | A fullscreen fragment shader and nothing else — the smallest thing that renders. |
 | `02-cloud-form` | A real HTML `<form>` with no background of its own, over a canvas that draws the cloud serving as its chrome. A `ResizeObserver` feeds the form's measured rect to the shader, so the silhouette tracks the DOM through any reflow, and `focusin`/`focusout` swell the cloud. |
+| `03-tetsuo` | A raymarched mass of flesh straining out of itself. Lobes and tendrils erupt from a core through smooth unions, fbm displaces the surface, and light bled through the thin parts gives it volume. A `<input type="range">` drives the mutation and the telemetry panel reads from the same number. |
 
 Colours in a shader are authored in sRGB and converted with `srgbToLinear3`
 before use. Using picker values as if they were linear makes a mid blue roughly
-four times too bright, and everything washes out.
+four times too bright, and everything washes out. The same conversion bites the
+other way in dark scenes: sRGB `0.06` is linear `0.004`, which a vignette and a
+contrast curve will finish off entirely. A dim-but-readable room wants to be
+authored around sRGB `0.2`, not `0.05`.
+
+## Raymarching
+
+There is no `march()` or `normalAt()` in this package, and there cannot be:
+both have to call *your* scene function, and WGSL has neither function pointers
+nor generics. The march loop belongs in the entry shader. Everything around it
+that does not depend on the scene — shapes, domain and combination operators,
+camera rays, the grade — is here. `examples/03-tetsuo/src/scene.wgsl` is the
+reference for how the two fit together.
+
+Displacing an SDF with noise breaks the Lipschitz bound the marcher relies on,
+so a full-length step will tunnel through thin features. Scaling the returned
+distance down (`return d * 0.55`) is the standard fix.
 
 ## Authoring rules
 

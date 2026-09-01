@@ -1,10 +1,12 @@
-// 2D signed distance fields and the operators that combine them.
+// 2D signed distance fields.
 //
 // Pure module — see space.wgsl for the authoring rules these all follow.
 //
 // Every sd* function returns signed distance in the same units as `p`:
 // negative inside, zero on the boundary, positive outside. Feed the result to
-// shaping.sdFill / shaping.sdStroke to draw it, or keep composing first.
+// shaping.sdFill / shaping.sdStroke to draw it, or combine shapes first with
+// the operators in `@gpu-in-html/wgsl/sdf` — those work on distances, so they
+// are shared with shape3d.
 
 export fn sdCircle(p: vec2f, radius: f32) -> f32 {
   return length(p) - radius;
@@ -37,43 +39,4 @@ export fn sdStar(p: vec2f, radius: f32, points: f32, inset: f32) -> f32 {
   let inner = radius * clamp(inset, 0.05, 0.95);
   return sdSegment(q, vec2f(radius, 0.0), vec2f(cos(wedge), sin(wedge)) * inner)
     - radius * 0.02;
-}
-
-export fn opUnion(a: f32, b: f32) -> f32 {
-  return min(a, b);
-}
-
-export fn opSubtract(a: f32, b: f32) -> f32 {
-  return max(a, -b);
-}
-
-export fn opIntersect(a: f32, b: f32) -> f32 {
-  return max(a, b);
-}
-
-// Polynomial smooth minimum. `k` is the blend width in the same units as the
-// distances — this is what makes separate circles read as one soft body.
-export fn opSmoothUnion(a: f32, b: f32, k: f32) -> f32 {
-  let h = clamp(0.5 + 0.5 * (b - a) / max(k, 1e-5), 0.0, 1.0);
-  return mix(b, a, h) - k * h * (1.0 - h);
-}
-
-export fn opSmoothIntersect(a: f32, b: f32, k: f32) -> f32 {
-  let h = clamp(0.5 - 0.5 * (b - a) / max(k, 1e-5), 0.0, 1.0);
-  return mix(b, a, h) + k * h * (1.0 - h);
-}
-
-export fn opSmoothSubtract(a: f32, b: f32, k: f32) -> f32 {
-  let h = clamp(0.5 - 0.5 * (b + a) / max(k, 1e-5), 0.0, 1.0);
-  return mix(a, -b, h) + k * h * (1.0 - h);
-}
-
-// Grow (positive) or shrink (negative) a shape by a uniform margin.
-export fn opRound(d: f32, radius: f32) -> f32 {
-  return d - radius;
-}
-
-// Turn a solid into a shell of the given thickness.
-export fn opOnion(d: f32, thickness: f32) -> f32 {
-  return abs(d) - thickness;
 }
