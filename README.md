@@ -211,6 +211,47 @@ Displacing an SDF with noise breaks the Lipschitz bound the marcher relies on,
 so a full-length step will tunnel through thin features. Scaling the returned
 distance down (`return d * 0.55`) is the standard fix.
 
+### TypeGPU could lift that restriction — spike notes
+
+Spiked against typegpu 0.12.4 and vgpu 0.3.1. What was verified, by running it:
+
+- `tgpu.resolve([fn])` emits plain, readable WGSL, and vgpu's `effect()`
+  compiles and renders it. TypeGPU as an authoring layer over vgpu as the
+  runtime composes fine.
+- **The generic marcher is achievable.** A `makeMarcher(sdf)` factory produced
+  two marchers specialised on different SDFs — `marchSphere` calling
+  `sdSphere`, `marchTorus` calling `sdTorus` — by binding a name in the body
+  through `.$uses({ sceneSdf: sdf })`. WGSL still has no function pointers;
+  the specialisation happens at generation time, one variant per scene. That
+  is exactly the restriction above, lifted.
+- WGSL-string bodies need no build plugin, so the Node scripts keep working.
+- Unknown identifiers in a string body pass straight through resolution, so
+  external WGSL can be concatenated around the output.
+
+What it would cost:
+
+- **`typegpu/std` is the WGSL builtins, not a shader library.** All 166 exports
+  are language functions — `abs`, `mix`, `textureSample`, subgroup ops. No
+  noise, no hash, no simplex. This package leans on `@vgpu/wgsl-std` for
+  precisely those.
+- `$uses` rejects raw WGSL strings, so existing WGSL cannot simply be dropped
+  in as an external.
+- Bridging to `@vgpu/wgsl-std` works but needs glue: vgpu's resolver
+  tree-shakes anything unreferenced and mangles every name to
+  `_vgsl_<hash>__<original>`, so you resolve a bridge entry, then rewrite the
+  call sites in the TypeGPU output. Mechanical, but glue.
+- **`pnpm check` stops applying.** The CI gate validates `.wgsl` files;
+  generated shaders would need a script that resolves first, then validates.
+
+And one thing the spike did *not* establish. The types-instead-of-documentation
+argument only pays off with TGSL — shader bodies written as `'use gpu'`
+TypeScript functions — and that path needs the build plugin, which was not
+tested here. With string bodies the types stop at the signature: the body is
+still an unchecked WGSL string.
+
+Verdict: worth adopting narrowly, for composition, in a new example rather than
+by migrating the library. Spike TGSL separately before going further.
+
 Two shading notes worth keeping, both learned the hard way in `03-tetsuo`:
 
 - **Texture a cylinder with `voronoiTiled`, not `voronoi2d`.** The angular
