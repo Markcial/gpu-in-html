@@ -1,0 +1,23 @@
+{
+  "name": "gpu-in-html",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.32.1",
+  "scripts": {
+    "check": "node scripts/check-wgsl.mjs",
+    "render": "node scripts/render.mjs",
+    "dev": "pnpm --filter @gpu-in-html/example-01-gradient dev",
+    "build": "pnpm -r --if-present build",
+    "typecheck": "tsc --noEmit",
+    "verify": "pnpm check && pnpm typecheck && pnpm build"
+  },
+  "devDependencies": {
+    "@vgpu/wgsl": "^0.3.1",
+    "@webgpu/types": "^0.1.69",
+    "pngjs": "^7.0.0",
+    "typescript": "^5.7.2",
+    "vgpu": "^0.3.1",
+    "vite": "^6.0.0"
+  }
+}

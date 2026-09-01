@@ -1,0 +1,16 @@
+{
+  "name": "@gpu-in-html/wgsl",
+  "version": "0.0.0",
+  "description": "Reusable pure-WGSL primitives for vgpu: space, shaping, colour, SDF, raymarching, post.",
+  "type": "module",
+  "license": "MIT",
+  "files": ["src"],
+  "exports": {
+    "./space": "./src/space.wgsl",
+    "./shaping": "./src/shaping.wgsl",
+    "./color": "./src/color.wgsl"
+  },
+  "peerDependencies": {
+    "vgpu": ">=0.3.0"
+  }
+}

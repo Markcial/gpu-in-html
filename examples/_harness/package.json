@@ -1,0 +1,13 @@
+{
+  "name": "@gpu-in-html/harness",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Dev-only glue shared by the examples. Deliberately not published: the library itself is pure WGSL.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "vgpu": ">=0.3.0"
+  }
+}
