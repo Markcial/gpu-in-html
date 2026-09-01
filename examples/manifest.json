@@ -28,14 +28,14 @@
   {
     "slug": "03-tetsuo",
     "title": "Mutation",
-    "blurb": "A raymarched mass of flesh straining out of itself, after the Tetsuo transformation. Lobes erupt from a core through smooth unions, fbm displaces the surface, and light bled through the thin parts gives it the volume a flat 2D field cannot. A slider drives the whole thing.",
-    "tags": ["raymarch", "sdf-3d", "subsurface", "grain"],
+    "blurb": "A raymarched arm coming apart, after the Tetsuo transformation. Masses erupt along the limb through smooth unions, and the tissue is separated into cells by a Voronoi projected cylindrically around the arm — muscle, bruise, fat and something colder, each cell picking one. Backscattered light through the thin parts gives it the volume a flat 2D field cannot. A slider drives the whole thing.",
+    "tags": ["raymarch", "sdf-3d", "voronoi", "subsurface"],
     "entry": "src/scene.wgsl",
     "still": {
       "width": 1600,
       "height": 900,
       "time": 6.0,
-      "set": { "pointer": [0.42, 0.46], "mutation": 0.85 }
+      "set": { "pointer": [0.5, 0.5], "mutation": 0.7 }
     }
   }
 ]

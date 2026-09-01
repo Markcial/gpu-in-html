@@ -12,6 +12,7 @@
     "./shape2d": "./src/shape2d.wgsl",
     "./shape3d": "./src/shape3d.wgsl",
     "./camera": "./src/camera.wgsl",
+    "./voronoi": "./src/voronoi.wgsl",
     "./color": "./src/color.wgsl",
     "./post": "./src/post.wgsl"
   },

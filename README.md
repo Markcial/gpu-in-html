@@ -88,6 +88,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 | `@gpu-in-html/wgsl/shape2d` | `sdCircle`, `sdBox`, `sdRoundedBox`, `sdSegment`, `sdStar` |
 | `@gpu-in-html/wgsl/shape3d` | `sdSphere`, `sdBox`, `sdRoundBox`, `sdTorus`, `sdCapsule`, `sdPlane`, `sdEllipsoid`, `opRepeat`, `opMirror`, `opTwist`, `rotX`, `rotY` |
 | `@gpu-in-html/wgsl/camera` | `Ray`, `rayFromUv`, `lookAt`, `orbit` |
+| `@gpu-in-html/wgsl/voronoi` | `voronoiTiled`, `cellRandom` — a Voronoi whose x axis wraps, for cylindrical projections |
 | `@gpu-in-html/wgsl/color` | `palette`, `paletteDefault`, Oklab/Oklch, `mixOklab` |
 | `@gpu-in-html/wgsl/post` | `vignette`, `grain`, `applyGrain`, `contrast`, `halation` |
 
@@ -103,7 +104,7 @@ transfer functions and tonemapping from `@vgpu/wgsl-std/color`
 | --- | --- |
 | `01-gradient` | A fullscreen fragment shader and nothing else — the smallest thing that renders. |
 | `02-cloud-form` | A real HTML `<form>` with no background of its own, over a canvas that draws the cloud serving as its chrome. A `ResizeObserver` feeds the form's measured rect to the shader, so the silhouette tracks the DOM through any reflow, and `focusin`/`focusout` swell the cloud. |
-| `03-tetsuo` | A raymarched mass of flesh straining out of itself. Lobes and tendrils erupt from a core through smooth unions, fbm displaces the surface, and light bled through the thin parts gives it volume. A `<input type="range">` drives the mutation and the telemetry panel reads from the same number. |
+| `03-tetsuo` | A raymarched arm coming apart. Masses erupt along the limb through smooth unions, and a cylindrically projected Voronoi separates the surface into cells of muscle, bruise, fat and something colder. A `<input type="range">` drives the mutation and the telemetry panel reads from the same number. |
 
 Colours in a shader are authored in sRGB and converted with `srgbToLinear3`
 before use. Using picker values as if they were linear makes a mid blue roughly
@@ -124,6 +125,17 @@ reference for how the two fit together.
 Displacing an SDF with noise breaks the Lipschitz bound the marcher relies on,
 so a full-length step will tunnel through thin features. Scaling the returned
 distance down (`return d * 0.55`) is the standard fix.
+
+Two shading notes worth keeping, both learned the hard way in `03-tetsuo`:
+
+- **Texture a cylinder with `voronoiTiled`, not `voronoi2d`.** The angular
+  coordinate wraps, and a Voronoi keyed on `floor(position)` puts different
+  cells on the two sides of the join, so the seam runs visibly down the shape.
+- **Backscatter belongs on the side facing away from the light.** Measuring
+  material between the point and the light and glowing where there is little
+  fires hardest exactly where the surface already faces the light — nothing is
+  in the way, so the term saturates and washes every other colour out.
+  Weight it by `1 - diffuse`.
 
 ## Authoring rules
 
