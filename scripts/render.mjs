@@ -14,7 +14,7 @@ import { parseArgs } from "node:util";
 
 import { resolveShader } from "@vgpu/wgsl/runtime";
 import { PNG } from "pngjs";
-import { effect, frame, init, target } from "vgpu/node";
+import { effect, frame, init, storage, target } from "vgpu/node";
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -49,8 +49,22 @@ const scene = target(gpu, { size: [width, height] });
 //   -s '{"cloudCenter":[0.5,0.55],"cloudHalf":[0.16,0.2],"focus":1}'
 const extra = values.set ? JSON.parse(values.set) : {};
 
+// WebGPU refuses to draw with an unbound binding, and a shader driven by the
+// DOM will declare storage buffers this script knows nothing about — the list
+// of form controls, for one. Bind a zeroed buffer for each so a headless
+// render is simply the same scene with none of them present.
+const storageBindings = {};
+for (const binding of resolved.reflection?.bindings ?? []) {
+  if (binding.kind === "buffer" && binding.addressSpace === "storage") {
+    storageBindings[binding.name] = storage(gpu, 4096);
+  }
+}
+
 const shader = effect(gpu, resolved.wgsl, {
-  set: { params: { resolution: [width, height], time, ...extra } },
+  set: {
+    params: { resolution: [width, height], time, ...extra },
+    ...storageBindings,
+  },
 });
 
 frame(gpu, (currentFrame) => {

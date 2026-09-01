@@ -35,9 +35,20 @@ struct Params {
   // position feeds this, so scrolling the form moves the camera rather than
   // just moving the document over a static backdrop.
   scroll: f32,
+  fieldCount: u32,
 }
 
 @group(0) @binding(0) var<uniform> params: Params;
+
+// Every form control on screen, two vec4f each:
+//
+//   [i*2 + 0]  (centreX, centreY, halfX, halfY)  rectangle, in uv space
+//   [i*2 + 1]  (kind, cornerRadius, focused, _)  0 = recessed, 1 = raised
+//
+// A storage buffer rather than a uniform array: the count varies with the page
+// and with scrolling, and vgpu's structured uniforms carry scalars, vectors and
+// matrices but not WGSL arrays.
+@group(0) @binding(1) var<storage, read> fields: array<vec4f>;
 
 const MAX_STEPS: i32 = 90;
 const MAX_DIST: f32 = 14.0;
@@ -137,6 +148,39 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   // The band just outside the edge, where displaced blood collects.
   let panelRim = smoothstep(0.016, 0.0, panelD) * (1.0 - underPanel) * panelActive;
 
+  // The controls, in the same screen space. Fields become depressions in the
+  // wall and the button a raised welt; the DOM elements themselves draw no
+  // background at all.
+  var fieldInset = 0.0;
+  var fieldRaised = 0.0;
+  var fieldLip = 0.0;
+  var fieldFocus = 0.0;
+  var fieldBevel = vec2f(0.0);
+
+  for (var i = 0u; i < params.fieldCount; i++) {
+    let rect = fields[i * 2u];
+    // Not `meta`: that is a reserved word in WGSL, like `target`.
+    let info = fields[i * 2u + 1u];
+
+    let q = (uv - rect.xy) * vec2f(aspect, 1.0);
+    let d = sdRoundedBox(q, rect.zw * vec2f(aspect, 1.0), info.y * aspect);
+
+    let inside = smoothstep(0.0012, -0.0012, d);
+    let edge = smoothstep(0.0055, 0.0, abs(d));
+
+    if (info.x < 0.5) {
+      fieldInset = max(fieldInset, inside);
+    } else {
+      fieldRaised = max(fieldRaised, inside);
+    }
+    fieldLip = max(fieldLip, edge);
+    fieldFocus = max(fieldFocus, edge * info.z);
+
+    // Outward direction along the edge, accumulated so the normal can be
+    // tilted there. The epsilon keeps normalize defined at the centre.
+    fieldBevel += normalize(q + vec2f(1e-5)) * edge;
+  }
+
   // The camera moves only with the page. Scrolling slides it along the wall
   // and turns it slightly, so the traverse curves rather than running dead
   // straight — and because the tube's own axis wanders, the wall keeps
@@ -176,6 +220,14 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     n = microNormal(s, n, 34.0, 0.22);
     // Flattened under the sheet: something pressing on a membrane smooths it.
     n = normalize(mix(n, geometric, underPanel * 0.92));
+
+    // Bevel the field edges. The accumulated direction is in screen space, so
+    // it goes through the camera basis to reach the world normal — colour
+    // alone gives painted rectangles, while a tilted normal gives a rim the
+    // lamp actually catches and reads as cut into the tissue.
+    let camRight = normalize(cross(radial, vec3f(0.0, 1.0, 0.0)));
+    let camUp = cross(camRight, radial);
+    n = normalize(n + (camRight * fieldBevel.x - camUp * fieldBevel.y) * 0.85);
 
     // The lamp rides the camera, so the light direction is the view direction.
     // True inverse-square is too aggressive: it leaves a lit ring at the very
@@ -286,6 +338,17 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // actually drives blood out of.
     albedo = mix(albedo, srgbToLinear3(vec3f(0.88, 0.66, 0.61)), panelRim * 0.55);
 
+    // Fields are depressions with a little fluid standing in them: darker than
+    // the patch around them, which is what keeps white type readable inside.
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.085, 0.014, 0.022)), fieldInset * 0.84);
+    // The button is a welt pushed up out of the wall and blanched by the
+    // stretch, so it carries dark type instead.
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.93, 0.86, 0.82)), fieldRaised * 0.92);
+    // Every control is pinched pale at its edge, and brighter where it has
+    // keyboard focus — the focus ring is drawn by the tissue, not by CSS.
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.86, 0.62, 0.58)), fieldLip * 0.42);
+    albedo = mix(albedo, srgbToLinear3(vec3f(1.00, 0.42, 0.28)), fieldFocus * 0.88);
+
     // The lamp gain is tuned for how far the wall actually is. Facing it at
     // roughly a radius' standoff, everything is near, so the value that lit a
     // receding tunnel blows this out completely.
@@ -314,7 +377,10 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
       * 0.045
       * wetness
       * attenuation
-      * (1.0 - underPanel * 0.85);
+      * (1.0 - underPanel * 0.85)
+      // Except in the fields: standing fluid is the one place the wall should
+      // look wet.
+      * (1.0 + fieldInset * 6.0);
 
     col = fog(col, voidColor, t, 0.14);
   }

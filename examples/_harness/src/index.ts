@@ -6,7 +6,7 @@
 // free to drop it and talk to vgpu directly.
 
 import { clock, effect, frameLoop, init, surface } from "vgpu";
-import type { Effect, ShaderSource, Surface } from "vgpu";
+import type { Effect, Gpu, ShaderSource, Surface } from "vgpu";
 
 export interface PointerState {
   /** Canvas-relative, 0..1, top-origin — the same space as vgpu's `uv`. */
@@ -32,9 +32,18 @@ export interface MountOptions {
   readonly dpr?: number | readonly [number, number];
   /** Cap the loop. Omit to run at display refresh rate. */
   readonly fps?: number;
+  /**
+   * Runs after the effect exists and before the first frame. Use it to create
+   * resources the shader binds — a storage buffer, a sampler — and `set` them.
+   * WebGPU requires every binding to be bound on the first draw, so anything
+   * the shader declares has to be attached here rather than after `mount`
+   * resolves.
+   */
+  readonly setup?: (gpu: Gpu, shader: Effect) => void;
 }
 
 export interface Sketch {
+  readonly gpu: Gpu;
   readonly output: Surface;
   readonly shader: Effect;
   stop(): void;
@@ -94,6 +103,8 @@ export async function mount(
   const time = clock(gpu);
   const pointer = trackPointer(canvas);
 
+  opts.setup?.(gpu, shader);
+
   const loop = frameLoop(
     gpu,
     (currentFrame) => {
@@ -121,6 +132,7 @@ export async function mount(
   );
 
   return {
+    gpu,
     output,
     shader,
     stop() {
