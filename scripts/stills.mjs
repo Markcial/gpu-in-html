@@ -12,7 +12,14 @@ const manifest = JSON.parse(readFileSync("examples/manifest.json", "utf8"));
 mkdirSync("public/stills", { recursive: true });
 
 for (const example of manifest) {
-  const { width = 1600, height = 900, time = 0, set } = example.still ?? {};
+  // An example whose shader is assembled at runtime has no entry file to
+  // render from. It gets no thumbnail rather than a wrong one.
+  if (!example.still) {
+    console.log(`skip ${example.slug} — no still settings (runtime-generated shader)`);
+    continue;
+  }
+
+  const { width = 1600, height = 900, time = 0, set } = example.still;
 
   const args = [
     "scripts/render.mjs",

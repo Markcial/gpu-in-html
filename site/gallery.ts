@@ -9,6 +9,7 @@ interface Example {
   title: string;
   blurb: string;
   tags: string[];
+  still?: unknown;
 }
 
 const grid = document.querySelector<HTMLDivElement>("#grid");
@@ -26,10 +27,21 @@ if (examples.length === 0) {
     // subpath on a static host.
     card.href = `./examples/${example.slug}/`;
 
-    const img = document.createElement("img");
-    img.src = `./stills/${example.slug}.png`;
-    img.alt = `${example.title} rendered still`;
-    img.loading = "lazy";
+    // No still settings means the shader is assembled at runtime and the
+    // headless renderer has no entry file to read, so there is nothing to
+    // show but a placeholder.
+    let thumb: HTMLElement;
+    if (example.still) {
+      const img = document.createElement("img");
+      img.src = `./stills/${example.slug}.png`;
+      img.alt = `${example.title} rendered still`;
+      img.loading = "lazy";
+      thumb = img;
+    } else {
+      thumb = document.createElement("div");
+      thumb.className = "noshot";
+      thumb.textContent = "runtime-generated · open to view";
+    }
 
     const body = document.createElement("div");
     body.className = "body";
@@ -50,7 +62,7 @@ if (examples.length === 0) {
     }
 
     body.append(title, blurb, tags);
-    card.append(img, body);
+    card.append(thumb, body);
     grid.append(card);
   }
 }

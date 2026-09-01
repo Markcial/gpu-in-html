@@ -50,5 +50,12 @@
       "time": 20.0,
       "set": { "tone": 0.55 }
     }
+  },
+  {
+    "slug": "05-forge",
+    "title": "Forge",
+    "blurb": "A trial of authoring shaders with TypeGPU instead of .wgsl files. Scenes are values here: combinators take distance functions and return new ones, so a scene is written as displace(smoothUnion(subtract(sphere, box), at(torus))) and each combinator emits a real WGSL function with its operands inlined. Note it has no thumbnail — the shader is assembled at runtime, so the headless still renderer has no entry file to read.",
+    "tags": ["typegpu", "composition", "raymarch", "trial"],
+    "entry": "src/main.ts"
   }
 ]

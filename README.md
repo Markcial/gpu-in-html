@@ -252,6 +252,28 @@ still an unchecked WGSL string.
 Verdict: worth adopting narrowly, for composition, in a new example rather than
 by migrating the library. Spike TGSL separately before going further.
 
+`05-forge` is that example. The composition win is real — a scene is written as
+`displace(smoothUnion(subtract(sphere, box), at(torus)))`, each combinator
+emitting a WGSL function with its operands inlined, and it renders. So do the
+costs, and the seam took four failures to get through:
+
+1. `$uses` will not take raw WGSL, so wgsl-std cannot be an external.
+2. vgpu's resolver tree-shakes anything no entry point reaches, so the bridge
+   needs a keeper entry point purely to hold the function it exports.
+3. That keeper leaves a second `@fragment` in the module and vgpu picked *it*
+   as the entry — the first run rendered the raw noise field instead of the
+   scene.
+4. Removing just the `@fragment` attribute does not work either: `@location` on
+   a parameter is only legal on an entry point, so the module stops compiling.
+   The whole keeper function has to be excised by regex from the resolved text.
+
+So the two libraries do not force a choice — TypeGPU authors, vgpu runs, and
+the bridge lets TypeGPU code reach wgsl-std. But the join is roughly twenty
+lines of text surgery against vgpu's output format, and `pnpm check` and
+`pnpm stills` do not cover a shader assembled at runtime. `05-forge` has no
+thumbnail for that reason, which is left visible in the gallery rather than
+papered over.
+
 Two shading notes worth keeping, both learned the hard way in `03-tetsuo`:
 
 - **Texture a cylinder with `voronoiTiled`, not `voronoi2d`.** The angular

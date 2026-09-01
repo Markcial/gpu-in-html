@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>05 · Forge</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #0a0a0c;
+        color: #e8e6ea;
+        font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      body {
+        display: grid;
+        grid-template-rows: 1fr auto;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .back {
+        position: fixed;
+        top: 16px;
+        left: 18px;
+        z-index: 2;
+        font-size: 12px;
+        font-weight: 600;
+        text-decoration: none;
+        color: #e8e6ea;
+        background: rgba(10, 10, 14, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 999px;
+        padding: 7px 14px;
+        backdrop-filter: blur(6px);
+      }
+
+      .back:hover {
+        background: rgba(10, 10, 14, 0.85);
+      }
+
+      footer {
+        padding: 12px 16px;
+        border-top: 1px solid #1e1e24;
+        color: #8b8994;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 22px;
+      }
+
+      footer b {
+        color: #e8e6ea;
+        font-weight: 600;
+      }
+
+      code {
+        color: #d1a3ff;
+      }
+
+      #error {
+        padding: 14px;
+        color: #ff8f8f;
+        white-space: pre-wrap;
+      }
+
+      #error:empty {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <a class="back" href="../../">← gallery</a>
+    <footer>
+      <span
+        >scene composed in TypeScript:
+        <code>displace(smoothUnion(subtract(sphere, box), at(torus)))</code></span
+      >
+      <span>generated WGSL <b id="r-size">—</b></span>
+      <span>functions <b id="r-fns">—</b></span>
+    </footer>
+    <pre id="error"></pre>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
