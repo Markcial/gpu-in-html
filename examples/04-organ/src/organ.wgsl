@@ -12,6 +12,7 @@
 // tissue that is simply alive.
 
 import { fbmSimplex3d } from "@vgpu/wgsl-std/noise/simplex";
+import { pcg2d, unitFloat } from "@vgpu/wgsl-std/hash";
 import { voronoiTiled, cellRandom } from "@gpu-in-html/wgsl/voronoi";
 
 const TAU: f32 = 6.28318530717958647692;
@@ -124,12 +125,91 @@ export fn skin(p: vec3f) -> vec3f {
   return vec3f(cos(angle) * 1.75, p.y, sin(angle) * 1.75);
 }
 
-// Branching ridges where a noise field crosses zero — vessels under the
-// mucosa. Returns 0..1. `width` sets how fine the branching reads, so the same
-// function serves both the large veins and the capillary net.
+// Branching ridges where a noise field crosses zero. Good enough for the
+// diffuse capillary blush, where the eye reads texture rather than structure.
+//
+// It is the wrong tool for actual vessels, and visibly so: the zero set of a
+// scalar field is a set of *closed contours*, so the "vessels" loop back on
+// themselves and their ends simply stop. `venousNetwork` below exists for that
+// reason.
 //
 // Static by design: vessels are anatomy, not weather.
 export fn vessels(p: vec3f, width: f32) -> f32 {
   let n = fbmSimplex3d(p, 4, 2.1, 0.55);
   return 1.0 - smoothstep(0.0, width, abs(n));
+}
+
+fn cellRand2(cell: vec2i, salt: u32) -> f32 {
+  return unitFloat(pcg2d(bitcast<vec2u>(cell) + vec2u(salt, salt * 2654435761u)).x);
+}
+
+fn rotate2(v: vec2f, a: f32) -> vec2f {
+  let s = sin(a);
+  let c = cos(a);
+  return vec2f(c * v.x - s * v.y, s * v.x + c * v.y);
+}
+
+// A capsule whose radius changes along its length — one vessel segment.
+fn taperedSegment(p: vec2f, a: vec2f, b: vec2f, ra: f32, rb: f32) -> f32 {
+  let pa = p - a;
+  let ba = b - a;
+  let h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-8), 0.0, 1.0);
+  return length(pa - ba * h) - mix(ra, rb, h);
+}
+
+// One vessel: a trunk that forks twice, every tip tapering to zero radius.
+//
+// The topology is the point. A tree has no cycles, so the network cannot close
+// a circuit back on itself, and a tip whose radius reaches zero thins away
+// instead of stopping dead — the two things the level-set field above gets
+// wrong.
+fn veinTree(p: vec2f, root: vec2f, dir: vec2f, len: f32, width: f32) -> f32 {
+  let spread = 0.55;
+
+  let fork = root + dir * len;
+  var d = taperedSegment(p, root, fork, width, width * 0.70);
+
+  let dirL = rotate2(dir, spread);
+  let dirR = rotate2(dir, -spread);
+  let forkL = fork + dirL * len * 0.72;
+  let forkR = fork + dirR * len * 0.66;
+  d = min(d, taperedSegment(p, fork, forkL, width * 0.70, width * 0.44));
+  d = min(d, taperedSegment(p, fork, forkR, width * 0.70, width * 0.44));
+
+  d = min(d, taperedSegment(p, forkL, forkL + rotate2(dirL, spread) * len * 0.52, width * 0.44, 0.0));
+  d = min(d, taperedSegment(p, forkL, forkL + rotate2(dirL, -spread) * len * 0.48, width * 0.44, 0.0));
+  d = min(d, taperedSegment(p, forkR, forkR + rotate2(dirR, spread) * len * 0.46, width * 0.44, 0.0));
+  d = min(d, taperedSegment(p, forkR, forkR + rotate2(dirR, -spread) * len * 0.54, width * 0.44, 0.0));
+
+  return d;
+}
+
+// A network of those on a wrapped lattice, returned as a 0..1 mask.
+//
+// Trees rooted in the neighbouring cells reach into this one, so coverage
+// carries across the grid instead of stopping at cell edges, and the x index
+// is wrapped before hashing so the field closes around the cylinder with no
+// seam. Nothing here moves: this is anatomy.
+export fn venousNetwork(uv: vec2f, period: f32) -> f32 {
+  let base = vec2i(floor(uv));
+  let wrap = max(i32(period), 1);
+  var d = 1.0e9;
+
+  for (var y = -1; y <= 1; y++) {
+    for (var x = -1; x <= 1; x++) {
+      let cell = base + vec2i(x, y);
+      let hashed = vec2i(((cell.x % wrap) + wrap) % wrap, cell.y);
+
+      let root = vec2f(f32(cell.x), f32(cell.y))
+        + vec2f(cellRand2(hashed, 11u), cellRand2(hashed, 23u));
+      let angle = cellRand2(hashed, 37u) * 6.28318530717958647692;
+      let len = 0.34 + 0.16 * cellRand2(hashed, 53u);
+      let width = 0.020 + 0.012 * cellRand2(hashed, 71u);
+
+      d = min(d, veinTree(uv, root, vec2f(cos(angle), sin(angle)), len, width));
+    }
+  }
+
+  // A soft edge, because these sit under the mucosa rather than on it.
+  return 1.0 - smoothstep(-0.010, 0.022, d);
 }

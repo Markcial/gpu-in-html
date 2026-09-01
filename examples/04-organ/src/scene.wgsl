@@ -7,11 +7,20 @@
 
 import { rayFromUv } from "@gpu-in-html/wgsl/camera";
 import { sdRoundedBox } from "@gpu-in-html/wgsl/shape2d";
+import { cylindricalUv } from "@gpu-in-html/wgsl/shape3d";
 import { applyGrain, contrast, fog, halation, vignette } from "@gpu-in-html/wgsl/post";
 import { linearToSrgb3, srgbToLinear3, tonemapAces } from "@vgpu/wgsl-std/color";
 import { fbmSimplex3d, simplex3d } from "@vgpu/wgsl-std/noise/simplex";
 import { saturate } from "@vgpu/wgsl-std/math";
-import { BEAT_RATE, heartbeat, lumenSdf, skin, tubeCenter, vessels } from "./organ.wgsl";
+import {
+  BEAT_RATE,
+  heartbeat,
+  lumenSdf,
+  skin,
+  tubeCenter,
+  venousNetwork,
+  vessels,
+} from "./organ.wgsl";
 
 struct Params {
   resolution: vec2f,
@@ -38,6 +47,11 @@ const SURFACE: f32 = 0.0016;
 // and how far back from the wall as a fraction of the lumen radius. Close
 // enough that the surface fills the frame, far enough that there is real
 // perspective across it.
+// Venous lattice density. VEINS_AROUND is the tiling period, so it has to stay
+// a whole number — a fractional count cannot close around the tube.
+const VEINS_AROUND: f32 = 12.0;
+const VEINS_ALONG: f32 = 2.3;
+
 const VIEW_ANGLE: f32 = 0.65;
 const VIEW_Y: f32 = 0.0;
 const STANDOFF: f32 = 0.55;
@@ -218,15 +232,50 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // Vessels at two scales: a few large veins, and a fine net over
     // everything. The net is what actually sells it — a single scale of
     // branching reads as cracks.
-    let veins = vessels(s * 0.95, 0.075);
+    // Veins proper: branching trees on a wrapped lattice, in blue.
+    //
+    // Two things keep them honest. They are trees, so no branch ever closes a
+    // loop, and every tip tapers to nothing rather than ending square. And a
+    // slow noise field sinks parts of the network below the mucosa, so a
+    // vessel that leaves frame has dived rather than been cut off — the fade
+    // is gradual enough that nothing pops into existence.
+    // Straight segments read as arrows, not vessels, so the sample point is
+    // warped before the lookup. A warp is a homeomorphism: it bends every
+    // branch without being able to introduce a loop or break one, so the
+    // topology the tree guarantees survives it intact.
+    //
+    // The warp is derived from the 3D point on the cylinder rather than from
+    // the uv, because that is inherently periodic around the tube — warping
+    // the uv directly would tear the seam where the field wraps.
+    let veinWarp = vec2f(
+      fbmSimplex3d(s * 0.85 + vec3f(11.0, 0.0, 0.0), 3, 2.0, 0.5),
+      fbmSimplex3d(s * 0.85 + vec3f(0.0, 27.0, 0.0), 3, 2.0, 0.5),
+    ) * 0.34;
+
+    let venous = venousNetwork(
+      cylindricalUv(s, VEINS_AROUND, VEINS_ALONG) + veinWarp,
+      VEINS_AROUND,
+    );
+    let surfacing = 0.25 + 0.75 * smoothstep(
+      -0.42,
+      0.22,
+      fbmSimplex3d(s * 0.65 + vec3f(2.3, 0.0, 1.1), 3, 2.0, 0.5),
+    );
+
     let capillaries = vessels(s * 3.10 + vec3f(9.3, 2.1, 4.7), 0.16);
     // Vessels sit under the mucosa, so they show through rather than being
     // drawn on it — a much lighter mix than a surface marking would take.
     // Engorged rather than emptied, so they hold up better inside the patch —
     // but still damped, or the branching competes with the type.
     let vesselFade = 1.0 - underPanel * 0.55;
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.40, 0.04, 0.07)), veins * 0.34 * vesselFade);
     albedo = mix(albedo, srgbToLinear3(vec3f(0.60, 0.11, 0.13)), capillaries * 0.16 * vesselFade);
+    // Deoxygenated blood under a translucent membrane reads blue-violet, not
+    // blue. Kept low: these should be noticed on the second look.
+    albedo = mix(
+      albedo,
+      srgbToLinear3(vec3f(0.20, 0.24, 0.46)),
+      venous * surfacing * 0.34 * vesselFade,
+    );
 
     // The patch under the form is congested, not blanched: the rim is where
     // the tissue is actually pinched, and blood trapped inside it pools and

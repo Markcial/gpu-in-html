@@ -246,6 +246,20 @@ answer here:
   regions with bare patches between them. A Voronoi's feature points are close
   to evenly spaced, so domes placed on them cover a surface the way nodules on
   a real membrane do.
+- **For anything that branches, build the topology; do not fake it with a
+  level set.** `1 - smoothstep(0, w, abs(noise))` is the usual trick for
+  vessels, cracks and lightning, and it is wrong for all of them in the same
+  way: the zero set of a scalar field is a collection of *closed contours*, so
+  the branches loop back on themselves and their ends stop dead. A tree of
+  tapered capsules has no cycles by construction, and a tip whose radius
+  reaches zero thins away instead of being cut off. Scatter the trees on a
+  wrapped lattice and evaluate the neighbouring cells so coverage carries
+  across.
+- **Bend it with a domain warp, not by curving the segments.** Straight
+  segments read as arrows. Warping the sample point bends every branch at once,
+  and because a warp is a homeomorphism it cannot introduce a loop or break
+  one — the topology survives it intact. Derive the warp from a coordinate that
+  is periodic around the shape, or it tears the seam.
 - **Fade the dome out before the cell border.** `f1` is continuous but its
   gradient is not — it kinks wherever the nearest feature changes — so
   displacing a surface by it creases along every border and those creases
