@@ -122,19 +122,23 @@ already knows and hand it to the shader as a uniform.
 `02-cloud-form` measures the form's bounding rect with a `ResizeObserver` and
 passes it in uv space, so the cloud's silhouette is the form's own rectangle.
 `04-organ` does the same and more: it passes the form's rectangle *and* the
-scroll position, so the wall is blanched exactly where the form presses on it
-and scrolling moves the camera along the wall rather than moving the document
-over a static backdrop. Its tone field is an ordinary `<input type="range">`
-that happens to write into a uniform.
+scroll position, so the wall is drawn differently exactly where the form
+presses on it and scrolling moves the camera along the wall rather than moving
+the document over a static backdrop. Its tone field is an ordinary
+`<input type="range">` that happens to write into a uniform.
 
-Blanching is worth calling out as a technique. A form needs a readable ground,
-and the obvious answer — a translucent dark panel — is precisely what makes it
-read as a layer floating over the render. Tissue goes pale under pressure, so
-having the shader lighten, flatten and drain the colour from the region the
-form occupies gives the text its ground *and* explains itself: relief still
-shows through, the pulse still reaches it faintly, and blood pools in a band
-just outside the edge. The rule generalises — find the thing the material would
-really do under a panel, and do that instead of drawing the panel.
+The technique there is worth calling out. A form needs a readable ground, and
+the obvious answer — a translucent panel — is precisely what makes it read as a
+layer floating over the render. Instead, ask what the material would really do
+under something pressing on it, and have the shader do that. Tissue under
+pressure congests: the rim pinches pale where the blood is actually driven out,
+and inside it pools and darkens toward venous red. That gives the type its
+ground *and* explains itself — relief still shows through, the vessels engorge
+rather than vanish, and the patch still throbs on the beat.
+
+Which direction to take it is a typography decision, not a physiological one.
+Congestion darkens, which suits white type; blanching lightens, which suits
+dark type. Both are real; pick the one that matches the palette.
 
 Three things to get right:
 

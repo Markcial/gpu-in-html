@@ -204,14 +204,14 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // Blood floods the tissue on systole, so it flushes. Driving the colour
     // from the same waveform that moves the wall is what makes the beat read
     // as blood arriving rather than as the surface merely shifting.
-    // Weaker under the sheet, where there is less blood left to arrive — but
-    // not absent: the membrane there is still living tissue and should still
-    // move with the beat.
+    // Kept almost at full strength under the form: congested tissue holds
+    // more blood, not less, so the patch should throb visibly against the
+    // white type sitting on it.
     let pulse = heartbeat(time * BEAT_RATE);
     albedo = mix(
       albedo,
       srgbToLinear3(vec3f(0.74, 0.06, 0.07)),
-      pulse * 0.26 * (1.0 - underPanel * 0.72),
+      pulse * 0.26 * (1.0 - underPanel * 0.15),
     );
     albedo *= 0.95 + 0.08 * (simplex3d(s * 21.0) * 0.5 + 0.5);
 
@@ -222,19 +222,20 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let capillaries = vessels(s * 3.10 + vec3f(9.3, 2.1, 4.7), 0.16);
     // Vessels sit under the mucosa, so they show through rather than being
     // drawn on it — a much lighter mix than a surface marking would take.
-    // Emptied of blood under the sheet, so they fade rather than showing
-    // through a pale membrane as dark lines.
-    let vesselFade = 1.0 - underPanel * 0.88;
+    // Engorged rather than emptied, so they hold up better inside the patch —
+    // but still damped, or the branching competes with the type.
+    let vesselFade = 1.0 - underPanel * 0.55;
     albedo = mix(albedo, srgbToLinear3(vec3f(0.40, 0.04, 0.07)), veins * 0.34 * vesselFade);
     albedo = mix(albedo, srgbToLinear3(vec3f(0.60, 0.11, 0.13)), capillaries * 0.16 * vesselFade);
 
-    // Pressure blanches tissue: it pushes blood out of the capillaries, so the
-    // membrane under the sheet goes pale and loses its chroma. That is what
-    // real tissue does under something pressing on it, and it is also what
-    // makes dark text legible on top without drawing a panel to hold it.
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.91, 0.79, 0.74)), underPanel * 0.90);
-    // Congestion at the edge, where the displaced blood has gone.
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.42, 0.04, 0.07)), panelRim * 0.72);
+    // The patch under the form is congested, not blanched: the rim is where
+    // the tissue is actually pinched, and blood trapped inside it pools and
+    // darkens toward venous red. That gives white type a ground dark enough to
+    // sit on while the region stays unmistakably tissue.
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.195, 0.022, 0.030)), underPanel * 0.90);
+    // The pinch line itself does blanch — that is the one place the pressure
+    // actually drives blood out of.
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.88, 0.66, 0.61)), panelRim * 0.55);
 
     // The lamp gain is tuned for how far the wall actually is. Facing it at
     // roughly a radius' standoff, everything is near, so the value that lit a
