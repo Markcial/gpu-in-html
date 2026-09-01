@@ -213,6 +213,15 @@ answer here:
   move the entire surface together and shape the motion in time instead: a
   strong pulse, a weaker one after it, then a pause. A plain sine reads as
   breathing; the asymmetry and the gap are what make it a beat.
+- **Drive the colour from the same waveform.** Blood floods the tissue on
+  systole, so the wall should flush, and it flushes by *desaturating less* —
+  red holds while green and blue drop — not by getting brighter. Measured
+  across a beat: red 161.8 → 162.6 while green falls 42.7 → 33.9 and blue
+  32.0 → 25.6. Raising luminance instead would read as a light flickering.
+- **Leave chroma headroom.** Pushed to full saturation, green and blue sit at
+  zero and shading can only move the red channel, which clips almost at once
+  and flattens the relief away. A vivid red that still shows its form needs to
+  stop short of the edge of the gamut.
 
 **Measure motion, do not judge it by eye.** Render the same shader at two
 timestamps and compare pixels, then render two timestamps a frame apart to

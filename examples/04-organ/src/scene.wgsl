@@ -10,7 +10,7 @@ import { applyGrain, contrast, fog, halation, vignette } from "@gpu-in-html/wgsl
 import { linearToSrgb3, srgbToLinear3, tonemapAces } from "@vgpu/wgsl-std/color";
 import { fbmSimplex3d, simplex3d } from "@vgpu/wgsl-std/noise/simplex";
 import { saturate } from "@vgpu/wgsl-std/math";
-import { lumenSdf, skin, tubeCenter, vessels } from "./organ.wgsl";
+import { BEAT_RATE, heartbeat, lumenSdf, skin, tubeCenter, vessels } from "./organ.wgsl";
 
 struct Params {
   resolution: vec2f,
@@ -89,7 +89,7 @@ fn occlusion(p: vec3f, n: vec3f, time: f32, tone: f32) -> f32 {
   // A light touch. Driven hard, this is what digs the creases to black and
   // splits the image into pale ridges and dark pits — the tissue should read
   // as one material at one value, shaped by light rather than by contrast.
-  return saturate(1.0 - acc * 2.2);
+  return saturate(1.0 - acc * 2.6);
 }
 
 @fragment
@@ -105,7 +105,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 
   // Not black. Out of the lamp's reach there is still tissue glowing dimly,
   // and a pure black hole reads as a missing object rather than as depth.
-  let voidColor = srgbToLinear3(vec3f(0.115, 0.030, 0.036));
+  let voidColor = srgbToLinear3(vec3f(0.170, 0.028, 0.034));
   var col = voidColor;
 
   let t = march(ray.origin, ray.direction, time, tone);
@@ -150,17 +150,28 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 
     // A narrow range on purpose. Real mucosa is one colour with slight
     // variation, not a marbled pattern; widening these endpoints is what turned
-    // the wall into a map of light and dark regions.
+    // the wall into a map of light and dark regions. The variation stays narrow
+    // here — only the saturation has gone up.
     var albedo = mix(
-      srgbToLinear3(vec3f(0.63, 0.35, 0.33)),
-      srgbToLinear3(vec3f(0.72, 0.46, 0.43)),
+      // Not pushed to the limit: with green and blue at zero the shading can
+      // only move the red channel, which saturates almost immediately and
+      // flattens the relief away. Leaving a little chroma headroom is what
+      // keeps the nodules readable at this hue.
+      srgbToLinear3(vec3f(0.58, 0.17, 0.15)),
+      srgbToLinear3(vec3f(0.82, 0.34, 0.28)),
       saturate(deep * 0.95 + 0.5),
     );
     albedo = mix(
       albedo,
-      srgbToLinear3(vec3f(0.70, 0.53, 0.45)),
+      srgbToLinear3(vec3f(0.82, 0.42, 0.34)),
       saturate(thin * 0.75 + 0.25) * 0.10,
     );
+
+    // Blood floods the tissue on systole, so it flushes. Driving the colour
+    // from the same waveform that moves the wall is what makes the beat read
+    // as blood arriving rather than as the surface merely shifting.
+    let pulse = heartbeat(time * BEAT_RATE);
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.74, 0.06, 0.07)), pulse * 0.26);
     albedo *= 0.95 + 0.08 * (simplex3d(s * 21.0) * 0.5 + 0.5);
 
     // Vessels at two scales: a few large veins, and a fine net over
@@ -170,8 +181,8 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let capillaries = vessels(s * 3.10 + vec3f(9.3, 2.1, 4.7), 0.16);
     // Vessels sit under the mucosa, so they show through rather than being
     // drawn on it — a much lighter mix than a surface marking would take.
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.47, 0.20, 0.22)), veins * 0.30);
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.56, 0.28, 0.28)), capillaries * 0.14);
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.40, 0.04, 0.07)), veins * 0.34);
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.60, 0.11, 0.13)), capillaries * 0.16);
 
     // The lamp gain is tuned for how far the wall actually is. Facing it at
     // roughly a radius' standoff, everything is near, so the value that lit a
@@ -179,13 +190,13 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // A generous ambient term relative to the lamp. Lifting the floor is what
     // keeps the shadows off black and holds the whole wall inside one value
     // range instead of splitting it into lit and unlit halves.
-    col = albedo * (diffuse * 1.55 * ao + 0.16 * ao);
+    col = albedo * (diffuse * 1.75 * ao + 0.11 * ao);
 
     // Light scattering forward through the thin folds, warm and close.
     col += srgbToLinear3(vec3f(0.88, 0.24, 0.18))
       * pow(saturate(1.0 - abs(facing)), 2.4)
       * attenuation
-      * (0.24 + tone * 0.18);
+      * (0.32 + tone * 0.22);
 
     // Barely any specular, and broad rather than tight. Mucosa is damp, not
     // polished: a narrow bright lobe over a smooth surface is exactly what
@@ -201,7 +212,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     col = fog(col, voidColor, t, 0.14);
   }
 
-  col = halation(col, srgbToLinear3(vec3f(1.0, 0.34, 0.22)), 0.78, 0.09);
+  col = halation(col, srgbToLinear3(vec3f(1.0, 0.20, 0.12)), 0.70, 0.16);
   col = tonemapAces(col);
   // Below 1: flatten rather than crush. The grade should not be adding the
   // black-and-white separation the shading was just tuned to avoid.
