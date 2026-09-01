@@ -35,14 +35,16 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   var col = skyColor(uv, aspect, params.time, parallax);
 
   let d = cloudSdf(q, halfN, params.time, params.focus);
+  let coverage = smoothstep(0.06, -0.04, d);
 
-  // Shadow: the same field sampled down and to the right, darkening the sky.
-  let ds = cloudSdf(q - vec2f(-0.12, 0.26), halfN, params.time, params.focus);
-  col *= 1.0 - smoothstep(0.34, -0.06, ds) * 0.20;
+  // Shadow: the same field sampled down and to the right. Keep the offset
+  // short and the ramp tight — a long soft one reads as haze, not shadow — and
+  // mask it by the cloud's own coverage so it darkens sky, never the cloud.
+  let ds = cloudSdf(q - vec2f(-0.05, 0.13), halfN, params.time, params.focus);
+  col *= 1.0 - smoothstep(0.16, -0.02, ds) * 0.26 * (1.0 - coverage);
 
   // Body: sunlit and warm on top, cool and dense underneath. Authored in sRGB
   // and converted, same as the sky.
-  let coverage = smoothstep(0.06, -0.04, d);
   let depth = saturate(-d * 1.2);
   var body = mix(
     srgbToLinear3(vec3f(1.00, 0.99, 0.96)),

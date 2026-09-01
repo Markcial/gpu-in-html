@@ -69,10 +69,25 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 | --- | --- |
 | `@gpu-in-html/wgsl/space` | `centered`, `flipY`, `rot2`, `rotate`, `polar`, `tile`, `kaleidoscope` |
 | `@gpu-in-html/wgsl/shaping` | `remap`, `aastep`, `sdFill`, `sdStroke`, `pulse`, `easeInOutCubic` |
-| `@gpu-in-html/wgsl/color` | `palette`, `paletteDefault`, sRGB transfer, Oklab/Oklch, `mixOklab`, `tonemapAces` |
+| `@gpu-in-html/wgsl/shape2d` | `sdCircle`, `sdBox`, `sdRoundedBox`, `sdSegment`, `sdStar`, and `opUnion` / `opSubtract` / `opIntersect` in hard and smooth forms |
+| `@gpu-in-html/wgsl/color` | `palette`, `paletteDefault`, Oklab/Oklch, `mixOklab` |
 
-Noise and hashing come from `@vgpu/wgsl-std` (`hash`, `noise`, `noise/perlin`,
-`noise/simplex`) — this package builds on those rather than reimplementing them.
+This package only holds what `@vgpu/wgsl-std` does not. Take hashing and noise
+from `@vgpu/wgsl-std` (`hash`, `noise`, `noise/perlin`, `noise/simplex`),
+transfer functions and tonemapping from `@vgpu/wgsl-std/color`
+(`srgbToLinear3`, `linearToSrgb3`, `tonemapAces`), and scalar helpers from
+`@vgpu/wgsl-std/math`. Check there before adding anything here.
+
+## Examples
+
+| | |
+| --- | --- |
+| `01-gradient` | A fullscreen fragment shader and nothing else — the smallest thing that renders. |
+| `02-cloud-form` | A real HTML `<form>` with no background of its own, over a canvas that draws the cloud serving as its chrome. A `ResizeObserver` feeds the form's measured rect to the shader, so the silhouette tracks the DOM through any reflow, and `focusin`/`focusout` swell the cloud. |
+
+Colours in a shader are authored in sRGB and converted with `srgbToLinear3`
+before use. Using picker values as if they were linear makes a mid blue roughly
+four times too bright, and everything washes out.
 
 ## Authoring rules
 
