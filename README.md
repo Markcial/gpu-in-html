@@ -140,36 +140,6 @@ Which direction to take it is a typography decision, not a physiological one.
 Congestion darkens, which suits white type; blanching lightens, which suits
 dark type. Both are real; pick the one that matches the palette.
 
-### Controls can be drawn by the shader too
-
-The same trick scales from one rectangle to all of them. `04-organ` uploads
-every on-screen control's rect to a storage buffer each frame, and the shader
-cuts the fields into the wall as wet depressions and pushes the button out of
-it as a blanched welt. The CSS for those elements carries no background, no
-border and no focus ring — it only positions text and takes input.
-
-A storage buffer rather than a uniform array, because vgpu's structured
-uniforms carry scalars, vectors and matrices but not WGSL arrays, and the count
-changes as the page scrolls. Two `vec4f` per control — rect, then kind, corner
-radius and focus — and only the ones actually on screen are uploaded, so a
-form of twenty-seven controls sends under a dozen.
-
-Two things this needs:
-
-- **A tilted normal, not just a darker colour.** Accumulate the outward
-  direction along each control's edge in screen space, map it into world space
-  through the camera basis, and add it to the normal. Colour alone gives
-  painted rectangles; the tilt gives a rim the lamp catches, and that is what
-  reads as cut into the surface.
-- **Something bound for headless renders.** WebGPU refuses to draw with an
-  unbound binding, so `scripts/render.mjs` inspects the shader's reflection and
-  binds a zeroed storage buffer for anything it finds. A still is then just the
-  same scene with no controls in it.
-
-A warning that has now cost two debugging rounds: WGSL's reserved word list is
-longer than it looks. `target` and `meta` are both reserved and both are
-natural names here. `vgpu check` catches them with `VGPU-WGSL-RESERVED-IDENT`.
-
 ### The DOM can be sandwiched between two canvases
 
 A canvas is not restricted to sitting behind the page. Give a second one a

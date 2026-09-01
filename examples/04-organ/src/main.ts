@@ -1,6 +1,4 @@
 import { mount } from "@gpu-in-html/harness";
-import { storage } from "vgpu";
-import type { StorageBuffer } from "vgpu";
 import scene from "./scene.wgsl";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#stage");
@@ -38,27 +36,6 @@ const heartbeat = (beats: number) => {
 // short enough that the wall does not blur past.
 const UNITS_PER_PIXEL = 0.0016;
 
-// Two vec4f per control. The cap is generous — only the controls actually on
-// screen are uploaded, and a viewport holds well under a dozen.
-const MAX_FIELDS = 48;
-const FIELD_STRIDE = 8;
-const fieldData = new Float32Array(MAX_FIELDS * FIELD_STRIDE);
-let fieldBuffer: StorageBuffer | undefined;
-
-// Corner radius, in the shader's aspect-corrected units. Matches the CSS
-// radius closely enough that the lip sits on the element's own edge.
-const FIELD_RADIUS = 0.009;
-
-// The controls the shader draws. Radios, checkboxes and the range keep their
-// native rendering: they are small, the platform draws them well, and a
-// depression the size of a checkbox reads as a blemish rather than a field.
-const TISSUE_CONTROLS = [
-  "input:not([type='radio']):not([type='checkbox']):not([type='range'])",
-  "select",
-  "textarea",
-  "button",
-].join(", ");
-
 let scrollTarget = 0;
 let scroll = 0;
 
@@ -88,13 +65,6 @@ try {
     // A raymarched frame is far more expensive than a fullscreen gradient.
     // Rendering it at 2× device pixels buys nothing you can see.
     dpr: 1,
-    // The shader declares a storage binding, and WebGPU requires every binding
-    // to be bound before the first draw — so it has to be attached here rather
-    // than after mount resolves.
-    setup: (gpu, shader) => {
-      fieldBuffer = storage(gpu, fieldData.byteLength);
-      shader.set({ fields: fieldBuffer });
-    },
     uniforms: (ctx) => {
       // Ease both, framed in deltaTime so the feel is the same at any refresh
       // rate. Scroll especially: wheel and trackpad events arrive in coarse
@@ -117,30 +87,6 @@ try {
       ];
       const panelHalf: [number, number] = [rect.width / 2 / vw, rect.height / 2 / vh];
 
-      // Upload the controls that are actually on screen. A page of this form
-      // holds twenty-seven of them and a viewport shows under a dozen, so
-      // culling keeps the shader's loop short as well as the upload.
-      let fieldCount = 0;
-      for (const el of form.querySelectorAll<HTMLElement>(TISSUE_CONTROLS)) {
-        if (fieldCount >= MAX_FIELDS) break;
-        const box = el.getBoundingClientRect();
-        if (box.bottom < -80 || box.top > vh + 80) continue;
-
-        const at = fieldCount * FIELD_STRIDE;
-        fieldData[at] = (box.left + box.width / 2) / vw;
-        fieldData[at + 1] = (box.top + box.height / 2) / vh;
-        fieldData[at + 2] = box.width / 2 / vw;
-        fieldData[at + 3] = box.height / 2 / vh;
-        // The button is the one control pushed out of the wall instead of into
-        // it, so it carries dark type while everything else carries light.
-        fieldData[at + 4] = el.tagName === "BUTTON" ? 1 : 0;
-        fieldData[at + 5] = FIELD_RADIUS;
-        fieldData[at + 6] = el === document.activeElement ? 1 : 0;
-        fieldData[at + 7] = 0;
-        fieldCount += 1;
-      }
-      fieldBuffer?.write(fieldData);
-
       const pulse = heartbeat(ctx.time * BEAT_RATE);
 
       if (readouts.depth) readouts.depth.textContent = `${Math.abs(scroll).toFixed(2)} m`;
@@ -149,7 +95,7 @@ try {
         readouts.perfusion.textContent = `${(86 + pulse * 11).toFixed(0)}%`;
       }
 
-      return { tone, scroll, panelCenter, panelHalf, fieldCount };
+      return { tone, scroll, panelCenter, panelHalf };
     },
   });
 
