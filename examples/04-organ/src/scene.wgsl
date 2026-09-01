@@ -6,6 +6,7 @@
 // over a wall reads as a shot; a still one reads as something being looked at.
 
 import { rayFromUv } from "@gpu-in-html/wgsl/camera";
+import { sdRoundedBox } from "@gpu-in-html/wgsl/shape2d";
 import { applyGrain, contrast, fog, halation, vignette } from "@gpu-in-html/wgsl/post";
 import { linearToSrgb3, srgbToLinear3, tonemapAces } from "@vgpu/wgsl-std/color";
 import { fbmSimplex3d, simplex3d } from "@vgpu/wgsl-std/noise/simplex";
@@ -14,6 +15,11 @@ import { BEAT_RATE, heartbeat, lumenSdf, skin, tubeCenter, vessels } from "./org
 
 struct Params {
   resolution: vec2f,
+  // The form's measured rectangle, in uv space. The tissue under it is drawn
+  // differently, so the sheet is not a panel over the wall — it is a patch of
+  // the wall.
+  panelCenter: vec2f,
+  panelHalf: vec2f,
   time: f32,
   tone: f32,
   // Distance travelled along the wall, in world units. The page's scroll
@@ -101,6 +107,22 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let time = params.time;
   let tone = clamp(params.tone, 0.0, 1.0);
 
+  // The form's rectangle, as a rounded box in screen space. Aspect-corrected
+  // so the corners stay round whatever the canvas is.
+  let aspect = params.resolution.x / max(params.resolution.y, 1e-4);
+  let panelD = sdRoundedBox(
+    (uv - params.panelCenter) * vec2f(aspect, 1.0),
+    params.panelHalf * vec2f(aspect, 1.0),
+    0.016 * aspect,
+  );
+  // With no form on the page the half-extent arrives as zero, and a rounded
+  // box of zero size is still a disc of its corner radius — which would blanch
+  // a stray dot in the middle of the frame. Headless renders hit exactly that.
+  let panelActive = step(1e-5, params.panelHalf.x * params.panelHalf.y);
+  let underPanel = smoothstep(0.0016, -0.0016, panelD) * panelActive;
+  // The band just outside the edge, where displaced blood collects.
+  let panelRim = smoothstep(0.016, 0.0, panelD) * (1.0 - underPanel) * panelActive;
+
   // The camera moves only with the page. Scrolling slides it along the wall
   // and turns it slightly, so the traverse curves rather than running dead
   // straight — and because the tube's own axis wanders, the wall keeps
@@ -138,6 +160,8 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // membrane look rough. The bumps in the distance field carry the relief.
     var n = microNormal(s, geometric, 9.0, 0.45);
     n = microNormal(s, n, 34.0, 0.22);
+    // Flattened under the sheet: something pressing on a membrane smooths it.
+    n = normalize(mix(n, geometric, underPanel * 0.92));
 
     // The lamp rides the camera, so the light direction is the view direction.
     // True inverse-square is too aggressive: it leaves a lit ring at the very
@@ -180,8 +204,15 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // Blood floods the tissue on systole, so it flushes. Driving the colour
     // from the same waveform that moves the wall is what makes the beat read
     // as blood arriving rather than as the surface merely shifting.
+    // Weaker under the sheet, where there is less blood left to arrive — but
+    // not absent: the membrane there is still living tissue and should still
+    // move with the beat.
     let pulse = heartbeat(time * BEAT_RATE);
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.74, 0.06, 0.07)), pulse * 0.26);
+    albedo = mix(
+      albedo,
+      srgbToLinear3(vec3f(0.74, 0.06, 0.07)),
+      pulse * 0.26 * (1.0 - underPanel * 0.72),
+    );
     albedo *= 0.95 + 0.08 * (simplex3d(s * 21.0) * 0.5 + 0.5);
 
     // Vessels at two scales: a few large veins, and a fine net over
@@ -191,8 +222,19 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let capillaries = vessels(s * 3.10 + vec3f(9.3, 2.1, 4.7), 0.16);
     // Vessels sit under the mucosa, so they show through rather than being
     // drawn on it — a much lighter mix than a surface marking would take.
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.40, 0.04, 0.07)), veins * 0.34);
-    albedo = mix(albedo, srgbToLinear3(vec3f(0.60, 0.11, 0.13)), capillaries * 0.16);
+    // Emptied of blood under the sheet, so they fade rather than showing
+    // through a pale membrane as dark lines.
+    let vesselFade = 1.0 - underPanel * 0.88;
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.40, 0.04, 0.07)), veins * 0.34 * vesselFade);
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.60, 0.11, 0.13)), capillaries * 0.16 * vesselFade);
+
+    // Pressure blanches tissue: it pushes blood out of the capillaries, so the
+    // membrane under the sheet goes pale and loses its chroma. That is what
+    // real tissue does under something pressing on it, and it is also what
+    // makes dark text legible on top without drawing a panel to hold it.
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.91, 0.79, 0.74)), underPanel * 0.90);
+    // Congestion at the edge, where the displaced blood has gone.
+    albedo = mix(albedo, srgbToLinear3(vec3f(0.42, 0.04, 0.07)), panelRim * 0.72);
 
     // The lamp gain is tuned for how far the wall actually is. Facing it at
     // roughly a radius' standoff, everything is near, so the value that lit a
@@ -206,18 +248,23 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     col += srgbToLinear3(vec3f(0.88, 0.24, 0.18))
       * pow(saturate(1.0 - abs(facing)), 2.4)
       * attenuation
-      * (0.32 + tone * 0.22);
+      * (0.32 + tone * 0.22)
+      * (1.0 - underPanel * 0.80);
 
     // Barely any specular, and broad rather than tight. Mucosa is damp, not
     // polished: a narrow bright lobe over a smooth surface is exactly what
     // makes this read as a mirror instead of tissue. The micro-relief above
     // scatters what little is left.
     let wetness = saturate(fbmSimplex3d(s * 3.1, 3, 2.0, 0.5) * 1.7 + 0.30);
+    // Almost gone under the sheet: something resting on a wet membrane wipes
+    // it, and a sheen there would read as glass over the tissue rather than as
+    // the tissue itself.
     col += vec3f(1.0, 0.96, 0.93)
       * pow(saturate(facing), 14.0)
       * 0.045
       * wetness
-      * attenuation;
+      * attenuation
+      * (1.0 - underPanel * 0.85);
 
     col = fog(col, voidColor, t, 0.14);
   }

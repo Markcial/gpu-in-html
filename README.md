@@ -121,12 +121,30 @@ already knows and hand it to the shader as a uniform.
 
 `02-cloud-form` measures the form's bounding rect with a `ResizeObserver` and
 passes it in uv space, so the cloud's silhouette is the form's own rectangle.
-`04-organ` passes the scroll position, so scrolling moves the camera along the
-wall rather than moving the document over a static backdrop — and its tone
-field is an ordinary `<input type="range">` that happens to write into a
-uniform.
+`04-organ` does the same and more: it passes the form's rectangle *and* the
+scroll position, so the wall is blanched exactly where the form presses on it
+and scrolling moves the camera along the wall rather than moving the document
+over a static backdrop. Its tone field is an ordinary `<input type="range">`
+that happens to write into a uniform.
 
-Two things to get right:
+Blanching is worth calling out as a technique. A form needs a readable ground,
+and the obvious answer — a translucent dark panel — is precisely what makes it
+read as a layer floating over the render. Tissue goes pale under pressure, so
+having the shader lighten, flatten and drain the colour from the region the
+form occupies gives the text its ground *and* explains itself: relief still
+shows through, the pulse still reaches it faintly, and blood pools in a band
+just outside the edge. The rule generalises — find the thing the material would
+really do under a panel, and do that instead of drawing the panel.
+
+Three things to get right:
+
+- **Measure the panel rect every frame, and do not ease it.** It has to sit
+  exactly where the browser drew the form; easing lets the tissue slide out
+  from under the text mid-scroll. Ease the *camera* instead, and the small lag
+  reads as parallax.
+- **Guard against a zero-size rect.** A rounded box of zero extent is still a
+  disc of its corner radius, so a page with no form — or a headless render —
+  gets a stray blanched dot in the middle of frame.
 
 - **Ease every input, framed in `deltaTime`.** Scroll events from a wheel or a
   trackpad arrive in coarse jumps, and following them literally makes the

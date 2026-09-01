@@ -73,6 +73,20 @@ try {
       scroll += (scrollTarget - scroll) * k;
       tone += (toneTarget - tone) * (1 - Math.exp(-ctx.deltaTime * 3.5));
 
+      // Measured every frame, and deliberately not eased. The blanched patch
+      // has to sit exactly where the browser has drawn the form; easing it
+      // would let the tissue slide out from under the text during a scroll.
+      // The camera's own scroll is eased, so the wall lags slightly behind the
+      // page — which reads as parallax rather than as a mismatch.
+      const rect = form.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const panelCenter: [number, number] = [
+        (rect.left + rect.width / 2) / vw,
+        (rect.top + rect.height / 2) / vh,
+      ];
+      const panelHalf: [number, number] = [rect.width / 2 / vw, rect.height / 2 / vh];
+
       const pulse = heartbeat(ctx.time * BEAT_RATE);
 
       if (readouts.depth) readouts.depth.textContent = `${Math.abs(scroll).toFixed(2)} m`;
@@ -81,7 +95,7 @@ try {
         readouts.perfusion.textContent = `${(86 + pulse * 11).toFixed(0)}%`;
       }
 
-      return { tone, scroll };
+      return { tone, scroll, panelCenter, panelHalf };
     },
   });
 
