@@ -105,7 +105,7 @@ transfer functions and tonemapping from `@vgpu/wgsl-std/color`
 | `01-gradient` | A fullscreen fragment shader and nothing else — the smallest thing that renders. |
 | `02-cloud-form` | A real HTML `<form>` with no background of its own, over a canvas that draws the cloud serving as its chrome. A `ResizeObserver` feeds the form's measured rect to the shader, so the silhouette tracks the DOM through any reflow, and `focusin`/`focusout` swell the cloud. |
 | `03-tetsuo` | A raymarched arm coming apart. Masses erupt along the limb through smooth unions, and a cylindrically projected Voronoi separates the surface into cells of muscle, bruise, fat and something colder. A `<input type="range">` drives the mutation and the telemetry panel reads from the same number. |
-| `04-organ` | The same cylinder turned inside out and faced rather than travelled down — the camera stands off the axis looking at the wall, which fills the frame and curves away at the edges. The only light rides the camera, slow peristalsis and a breath move the surface, and a continuously varying mucosa carries a vessel net at two scales. The pointer pans across it. |
+| `04-organ` | The same cylinder turned inside out and faced rather than travelled down. Fixed camera, lamp on the lens, and the only motion is the tissue itself: slow peristalsis and a breath. A continuously varying mucosa carries a vessel net at two scales, and micro-relief on the normals keeps the surface matte. |
 
 Colours in a shader are authored in sRGB and converted with `srgbToLinear3`
 before use. Using picker values as if they were linear makes a mid blue roughly
@@ -178,6 +178,29 @@ Two framing notes, both of which cost a rewrite to learn:
 Lamp gain is tied to how far the subject is. The value that lit a receding
 tunnel blows out a wall at arm's length; expect to retune it whenever the
 framing changes.
+
+Three more things separate tissue from a mirror, in the order they mattered:
+
+- **Perturb the normal with fine noise.** A smooth normal plus any specular at
+  all reads as polished, whatever the colour underneath. Two scales of noise
+  gradient tilted into the normal cost four samples on hit pixels only —
+  putting the same detail in the SDF would cost an evaluation on every step of
+  every ray and force shorter steps as well.
+- **Texture in a space attached to the surface, not in world space.** The wall
+  moves, so sampling at the world-space hit point makes the whole pattern swim
+  across the tissue. Projecting back onto an undeformed cylinder throws away
+  exactly the component that moves.
+- **Do not scroll the surface noise.** A body's shape moves; its texture does
+  not travel through it. Scrolling noise makes the surface boil, and against
+  high-frequency shading that boiling is most of what reads as restlessness
+  even when every rate is already slow.
+
+**Measure motion, do not judge it by eye.** Render the same shader at two
+timestamps and compare pixels, then render two timestamps a frame apart to
+establish the grain floor and subtract it. Tuning 04-organ this way found that
+the surface noise scroll, not the peristalsis rate, was the main offender —
+and took the motion above the grain floor from 4.9 points to 1.2 over three
+seconds while leaving it visibly alive.
 
 ## Authoring rules
 

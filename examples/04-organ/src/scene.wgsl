@@ -1,20 +1,19 @@
-// Entry shader: a flythrough down the inside of an organ.
+// Entry shader: the wall of an organ, looked at.
 //
-// The lighting model is the point of this one. There is no sun and no room —
-// the only light is on the camera, so brightness falls off with distance and
-// the tunnel ahead goes black on its own. That single change is most of what
-// separates "inside a body" from "outside an object".
+// Two things carry this one. The lamp rides the camera, so there is no sun and
+// no room and the light falls off with distance. And the camera does not move:
+// the only motion in the frame is the tissue itself, slowly. A moving camera
+// over a wall reads as a shot; a still one reads as something being looked at.
 
 import { rayFromUv } from "@gpu-in-html/wgsl/camera";
 import { applyGrain, contrast, fog, halation, vignette } from "@gpu-in-html/wgsl/post";
 import { linearToSrgb3, srgbToLinear3, tonemapAces } from "@vgpu/wgsl-std/color";
-import { fbmSimplex3d } from "@vgpu/wgsl-std/noise/simplex";
+import { fbmSimplex3d, simplex3d } from "@vgpu/wgsl-std/noise/simplex";
 import { saturate } from "@vgpu/wgsl-std/math";
-import { lumenSdf, tubeCenter, vessels } from "./organ.wgsl";
+import { lumenSdf, skin, tubeCenter, vessels } from "./organ.wgsl";
 
 struct Params {
   resolution: vec2f,
-  pointer: vec2f,
   time: f32,
   tone: f32,
 }
@@ -25,14 +24,12 @@ const MAX_STEPS: i32 = 90;
 const MAX_DIST: f32 = 14.0;
 const SURFACE: f32 = 0.0016;
 
-// How fast the view drifts along the wall on its own, in units per second.
-// Kept very low: this is a wall being looked at, not a ride. The readouts in
-// main.ts derive their distance from this same number.
-const DRIFT: f32 = 0.055;
-
-// How far back from the wall the camera stands, as a fraction of the lumen
-// radius. Close enough that the surface fills the frame, far enough that
-// there is real perspective across it.
+// A fixed viewpoint: where around the axis the camera sits, at what height,
+// and how far back from the wall as a fraction of the lumen radius. Close
+// enough that the surface fills the frame, far enough that there is real
+// perspective across it.
+const VIEW_ANGLE: f32 = 0.65;
+const VIEW_Y: f32 = 0.0;
 const STANDOFF: f32 = 0.55;
 
 fn normalAt(p: vec3f, time: f32, tone: f32) -> vec3f {
@@ -42,6 +39,25 @@ fn normalAt(p: vec3f, time: f32, tone: f32) -> vec3f {
     lumenSdf(p + e.yxy, time, tone) - lumenSdf(p - e.yxy, time, tone),
     lumenSdf(p + e.yyx, time, tone) - lumenSdf(p - e.yyx, time, tone),
   ));
+}
+
+// Micro-relief. At this range the distance field's own detail is far too
+// smooth, and a smooth normal plus any specular at all reads as polished —
+// however matte the colour underneath is. Tilting the normal with a fine noise
+// gradient breaks the shading up for four noise samples on hit pixels only.
+// Putting the same detail in the SDF would cost an evaluation on every step of
+// every ray, and would force the marcher to take shorter steps as well.
+fn microNormal(p: vec3f, n: vec3f, scale: f32, strength: f32) -> vec3f {
+  let e = 0.12;
+  let base = simplex3d(p * scale);
+  let gradient = vec3f(
+    simplex3d(p * scale + vec3f(e, 0.0, 0.0)) - base,
+    simplex3d(p * scale + vec3f(0.0, e, 0.0)) - base,
+    simplex3d(p * scale + vec3f(0.0, 0.0, e)) - base,
+  );
+  // Only the part tangential to the surface should tilt it.
+  let tangential = gradient - n * dot(gradient, n);
+  return normalize(n + tangential * strength);
 }
 
 fn march(origin: vec3f, direction: vec3f, time: f32, tone: f32) -> f32 {
@@ -60,9 +76,8 @@ fn march(origin: vec3f, direction: vec3f, time: f32, tone: f32) -> f32 {
 }
 
 // Cavity occlusion: how enclosed a point is. Sampling the field a short way
-// along the normal is the cheapest useful ambient term, and inside a tube it
-// does most of the work — the creases between folds are exactly the places
-// that should go dark.
+// along the normal is the cheapest useful ambient term, and against a folded
+// wall it does most of the work — the creases are exactly what should go dark.
 fn occlusion(p: vec3f, n: vec3f, time: f32, tone: f32) -> f32 {
   var acc = 0.0;
   var weight = 1.0;
@@ -79,31 +94,14 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let time = params.time;
   let tone = clamp(params.tone, 0.0, 1.0);
 
-  // Face the wall, not down the tube. The camera sits just off the axis and
-  // looks outward, so the surface fills the frame and curves away at the
-  // edges: a wall you are standing in front of, rather than a tunnel you are
-  // travelling down.
-  //
-  // The pointer pans across it — x swings around the circumference, y slides
-  // along the axis. Both move the camera itself, which is why this reads.
-  // Nudging a look-at target 2.6 units away by half a unit, as this did
-  // before, is an angular change small enough to look like nothing happened.
-  let pan = (params.pointer - vec2f(0.5)) * 2.0;
-  let viewAngle = pan.x * 1.30 + time * 0.020;
-  let viewY = -pan.y * 1.60 - time * DRIFT;
+  // Fixed camera, just off the axis, facing the wall.
+  let axis = tubeCenter(VIEW_Y);
+  let radial = vec3f(cos(VIEW_ANGLE), 0.0, sin(VIEW_ANGLE));
+  let onAxis = vec3f(axis.x, VIEW_Y, axis.y);
+  let ray = rayFromUv(uv, params.resolution, onAxis + radial * STANDOFF, onAxis + radial * 3.0, 1.02);
 
-  let axis = tubeCenter(viewY);
-  let radial = vec3f(cos(viewAngle), 0.0, sin(viewAngle));
-  let onAxis = vec3f(axis.x, viewY, axis.y);
-
-  let origin = onAxis + radial * STANDOFF;
-  let at = onAxis + radial * 3.0;
-
-  let ray = rayFromUv(uv, params.resolution, origin, at, 1.02);
-
-  // Not black. Out of the lamp's reach there is still tissue glowing dimly
-  // around the light, and a pure black hole down the middle reads as a missing
-  // object rather than as depth.
+  // Not black. Out of the lamp's reach there is still tissue glowing dimly,
+  // and a pure black hole reads as a missing object rather than as depth.
   let voidColor = srgbToLinear3(vec3f(0.115, 0.030, 0.036));
   var col = voidColor;
 
@@ -111,14 +109,24 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 
   if (t > 0.0) {
     let p = ray.origin + ray.direction * t;
-    let n = normalAt(p, time, tone);
     let view = -ray.direction;
 
+    // The geometric normal is kept as well as the perturbed one: occlusion is
+    // a property of the shape, and feeding it a bumped normal would make the
+    // micro-relief cast shadows it has no geometry for.
+    let geometric = normalAt(p, time, tone);
+
+    // Everything that decorates the surface is sampled in skin space, so the
+    // pattern stays stuck to the tissue while the wall breathes underneath it.
+    let s = skin(p);
+
+    // Two scales of micro-relief: pores, then the grain between them.
+    var n = microNormal(s, geometric, 9.0, 1.30);
+    n = microNormal(s, n, 34.0, 0.75);
+
     // The lamp rides the camera, so the light direction is the view direction.
-    // True inverse-square is too aggressive here: it leaves a lit ring at the
-    // very edge of frame and nothing else. Softening the quadratic term lets
-    // the lamp reach a few metres down the tube, which is what an endoscope
-    // actually does.
+    // True inverse-square is too aggressive: it leaves a lit ring at the very
+    // edge of frame and nothing else.
     let attenuation = 1.0 / (1.0 + t * t * 0.16);
     let facing = dot(n, view);
 
@@ -127,14 +135,13 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     // organic surfaces read as painted plastic.
     let wrap = 0.42;
     let diffuse = saturate((facing + wrap) / (1.0 + wrap)) * attenuation;
-    let ao = occlusion(p, n, time, tone);
+    let ao = occlusion(p, geometric, time, tone);
 
     // Mucosa colour, continuous rather than patched. Real tissue does not come
-    // in discrete cells at this scale; the Voronoi that suits the arm reads as
-    // camouflage in here. Two low frequencies move the colour inside a narrow
-    // hue range instead, which is all the variation a mucosa actually has.
-    let deep = fbmSimplex3d(p * 0.85 + vec3f(0.0, 0.0, 3.7), 3, 2.0, 0.5);
-    let thin = fbmSimplex3d(p * 2.30 + vec3f(5.1, 0.0, 0.0), 3, 2.0, 0.5);
+    // in discrete cells at this scale, so two low frequencies move the colour
+    // inside a narrow hue range, and a fine one breaks it up close in.
+    let deep = fbmSimplex3d(s * 0.85 + vec3f(0.0, 0.0, 3.7), 3, 2.0, 0.5);
+    let thin = fbmSimplex3d(s * 2.30 + vec3f(5.1, 0.0, 0.0), 3, 2.0, 0.5);
 
     var albedo = mix(
       srgbToLinear3(vec3f(0.56, 0.26, 0.25)), // congested
@@ -146,12 +153,13 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
       srgbToLinear3(vec3f(0.66, 0.55, 0.43)),
       saturate(thin * 0.75 + 0.25) * 0.20,
     );
+    albedo *= 0.90 + 0.18 * (simplex3d(s * 21.0) * 0.5 + 0.5);
 
     // Vessels at two scales: a few large veins, and a fine net over
     // everything. The net is what actually sells it — a single scale of
     // branching reads as cracks.
-    let veins = vessels(p * 0.95, time, 0.075);
-    let capillaries = vessels(p * 3.10 + vec3f(9.3, 2.1, 4.7), time, 0.16);
+    let veins = vessels(s * 0.95, 0.075);
+    let capillaries = vessels(s * 3.10 + vec3f(9.3, 2.1, 4.7), 0.16);
     albedo = mix(albedo, srgbToLinear3(vec3f(0.38, 0.10, 0.13)), veins * 0.52);
     albedo = mix(albedo, srgbToLinear3(vec3f(0.52, 0.19, 0.20)), capillaries * 0.24);
 
@@ -166,15 +174,14 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
       * attenuation
       * (0.38 + tone * 0.30);
 
-    // Mucus pools rather than coating evenly, so the sheen has to be patchy
-    // and weak. An even glossy layer over the whole wall is exactly what makes
-    // it look like moulded plastic.
-    let wetness = saturate(
-      fbmSimplex3d(p * 3.1 + vec3f(0.0, time * 0.05, 0.0), 3, 2.0, 0.5) * 1.7 + 0.30,
-    );
+    // Barely any specular, and broad rather than tight. Mucosa is damp, not
+    // polished: a narrow bright lobe over a smooth surface is exactly what
+    // makes this read as a mirror instead of tissue. The micro-relief above
+    // scatters what little is left.
+    let wetness = saturate(fbmSimplex3d(s * 3.1, 3, 2.0, 0.5) * 1.7 + 0.30);
     col += vec3f(1.0, 0.96, 0.93)
-      * pow(saturate(facing), 36.0)
-      * 0.15
+      * pow(saturate(facing), 14.0)
+      * 0.045
       * wetness
       * attenuation;
 
@@ -185,7 +192,9 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   col = tonemapAces(col);
   col = contrast(col, 1.05);
   col *= 1.0 - vignette(uv, 0.40, 0.68);
-  col = applyGrain(col, uv, params.resolution, time, 0.10);
+  // Grain is reseeded every frame, so it is a real contributor to how busy the
+  // image feels even though nothing in the scene is moving because of it.
+  col = applyGrain(col, uv, params.resolution, time, 0.055);
 
   return vec4f(linearToSrgb3(max(col, vec3f(0.0))), 1.0);
 }

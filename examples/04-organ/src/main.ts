@@ -20,12 +20,11 @@ slider.addEventListener("input", () => {
   target = Number(slider.value) / 100;
 });
 
-// The view drifts along the wall at this rate on its own (DRIFT in
-// scene.wgsl — keep the two in step). The readout derives its station from the
+// Radians per second of the wall's breathing dilation (BREATH_RATE in
+// organ.wgsl — keep the two in step). The readout derives its phase from the
 // same constant rather than counting frames, so a dropped frame cannot drift
-// it away from what is on screen. The pointer moves the camera too, and this
-// number deliberately ignores that: it reports the survey's own progress.
-const DRIFT_PER_SECOND = 0.055;
+// it away from what is on screen.
+const BREATH_RATE = 0.16;
 
 try {
   const sketch = await mount(canvas, scene, {
@@ -35,18 +34,19 @@ try {
     uniforms: (ctx) => {
       tone += (target - tone) * (1 - Math.exp(-ctx.deltaTime * 3.5));
 
+      // Same phase the shader dilates the wall with, so the number and the
+      // picture breathe together.
+      const breath = Math.sin(ctx.time * BREATH_RATE) * 0.5 + 0.5;
+
       if (readouts.depth) {
-        readouts.depth.textContent = `${(ctx.time * DRIFT_PER_SECOND).toFixed(2)} m`;
+        readouts.depth.textContent = `${(88 + breath * 9).toFixed(0)}%`;
       }
       if (readouts.tone) readouts.tone.textContent = `${(tone * 100).toFixed(0)}%`;
       if (readouts.mucosa) {
         readouts.mucosa.textContent = tone > 0.7 ? "contracted" : "relaxed";
       }
 
-      return {
-        pointer: [ctx.pointer.position[0], ctx.pointer.position[1]],
-        tone,
-      };
+      return { tone };
     },
   });
 
