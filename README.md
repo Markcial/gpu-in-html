@@ -140,6 +140,37 @@ Which direction to take it is a typography decision, not a physiological one.
 Congestion darkens, which suits white type; blanching lightens, which suits
 dark type. Both are real; pick the one that matches the palette.
 
+### The DOM can be sandwiched between two canvases
+
+A canvas is not restricted to sitting behind the page. Give a second one a
+`z-index` above the content and `pointer-events: none`, create its surface with
+`alphaMode: "premultiplied"`, and clear it to `[0, 0, 0, 0]`, and it composites
+over the DOM while leaving it fully interactive. Both surfaces can be created
+from one `Gpu` and drawn in a single `frame`.
+
+```ts
+const back = surface(gpu, backCanvas);
+const front = surface(gpu, frontCanvas, {
+  alphaMode: "premultiplied",
+  clearColor: [0, 0, 0, 0], // without this the overlay paints opaque black
+});
+frame(gpu, (f) => {
+  f.pass(back, wall);
+  f.pass(front, foreground);
+});
+```
+
+Verified with a probe: stripes drawn on the front surface cross over a heading,
+an input and a paragraph, and the input still takes focus and typing. So a
+vessel can pass *in front of* a form rather than only behind it, and the page
+sits inside the scene rather than on top of it. The shader writes premultiplied
+colour — `rgb` already scaled by `a`.
+
+What this still does not give is glyphs that deform with the surface. Text is
+composited by the browser, so it stays flat and crisp no matter what is drawn
+over it. Deforming the type itself means rasterising the DOM into a texture,
+and that costs selection, focus and accessibility.
+
 Three things to get right:
 
 - **Measure the panel rect every frame, and do not ease it.** It has to sit
