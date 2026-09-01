@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>02 · Cloud form</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #123055;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        font-family: ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif;
+        color: var(--ink);
+      }
+
+      /* The canvas is the page background. Everything else stacks on top of it
+         in normal document flow — the form is real HTML, not drawn pixels. */
+      #stage {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      main {
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-height: 100%;
+        padding: 24px;
+      }
+
+      /* No background and no border: the cloud underneath is the chrome. The
+         padding is what gives the shader a rectangle big enough to wrap. */
+      .cloud-form {
+        width: min(420px, 100%);
+        padding: 46px 44px 40px;
+        display: grid;
+        gap: 14px;
+        background: none;
+        border: none;
+      }
+
+      .cloud-form h1 {
+        margin: 0 0 2px;
+        font-size: 25px;
+        letter-spacing: -0.015em;
+      }
+
+      .cloud-form p {
+        margin: 0 0 10px;
+        font-size: 14px;
+        opacity: 0.72;
+      }
+
+      label {
+        display: grid;
+        gap: 5px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        opacity: 0.66;
+      }
+
+      input {
+        font: inherit;
+        font-size: 15px;
+        color: var(--ink);
+        padding: 11px 13px;
+        border-radius: 11px;
+        border: 1px solid rgba(18, 48, 85, 0.16);
+        background: rgba(255, 255, 255, 0.55);
+        transition: background 160ms ease, border-color 160ms ease;
+      }
+
+      input:focus {
+        outline: none;
+        background: rgba(255, 255, 255, 0.85);
+        border-color: rgba(18, 48, 85, 0.42);
+      }
+
+      button {
+        margin-top: 6px;
+        font: inherit;
+        font-weight: 650;
+        font-size: 15px;
+        color: #fff;
+        padding: 12px;
+        border: none;
+        border-radius: 11px;
+        background: linear-gradient(#3f7fd6, #2d63b4);
+        cursor: pointer;
+        transition: transform 140ms ease, filter 140ms ease;
+      }
+
+      button:hover {
+        filter: brightness(1.08);
+      }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      #error {
+        position: fixed;
+        inset: auto 12px 12px;
+        margin: 0;
+        padding: 12px;
+        border-radius: 10px;
+        background: #2a0d0d;
+        color: #ff9a9a;
+        font: 12px/1.5 ui-monospace, Menlo, monospace;
+        white-space: pre-wrap;
+      }
+
+      #error:empty {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+
+    <main>
+      <form class="cloud-form" id="cloud-form">
+        <h1>Head in the clouds</h1>
+        <p>The cloud behind this form is a shader. It is measuring the form.</p>
+
+        <label>
+          Name
+          <input name="name" type="text" autocomplete="name" placeholder="Ada Lovelace" />
+        </label>
+
+        <label>
+          Email
+          <input name="email" type="email" autocomplete="email" placeholder="ada@example.com" />
+        </label>
+
+        <button type="submit">Send it up</button>
+      </form>
+    </main>
+
+    <pre id="error"></pre>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -23,6 +23,7 @@ const { values, positionals } = parseArgs({
     width: { type: "string", short: "w", default: "1200" },
     height: { type: "string", short: "h", default: "675" },
     time: { type: "string", short: "t", default: "0" },
+    set: { type: "string", short: "s" },
   },
 });
 
@@ -43,8 +44,13 @@ const resolved = await resolveShader({ entry: resolvePath(entry), validate: "aut
 
 const gpu = await init();
 const scene = target(gpu, { size: [width, height] });
+// Shaders with more than resolution/time — a measured layout rect, an
+// interaction state — take the rest as JSON:
+//   -s '{"cloudCenter":[0.5,0.55],"cloudHalf":[0.16,0.2],"focus":1}'
+const extra = values.set ? JSON.parse(values.set) : {};
+
 const shader = effect(gpu, resolved.wgsl, {
-  set: { params: { resolution: [width, height], time } },
+  set: { params: { resolution: [width, height], time, ...extra } },
 });
 
 frame(gpu, (currentFrame) => {

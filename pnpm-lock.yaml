@@ -35,6 +35,34 @@ importers:
       '@gpu-in-html/wgsl':
         specifier: workspace:*
         version: link:../../packages/wgsl
+      '@vgpu/wgsl-std':
+        specifier: ^0.3.1
+        version: 0.3.1
+      vgpu:
+        specifier: ^0.3.1
+        version: 0.3.1
+    devDependencies:
+      '@vgpu/wgsl':
+        specifier: ^0.3.1
+        version: 0.3.1(@vgpu/adapter-node@0.3.1)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.3
+
+  examples/02-cloud-form:
+    dependencies:
+      '@gpu-in-html/harness':
+        specifier: workspace:*
+        version: link:../_harness
+      '@gpu-in-html/wgsl':
+        specifier: workspace:*
+        version: link:../../packages/wgsl
+      '@vgpu/wgsl-std':
+        specifier: ^0.3.1
+        version: 0.3.1
       vgpu:
         specifier: ^0.3.1
         version: 0.3.1

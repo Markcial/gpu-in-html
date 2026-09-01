@@ -8,6 +8,7 @@
   "exports": {
     "./space": "./src/space.wgsl",
     "./shaping": "./src/shaping.wgsl",
+    "./shape2d": "./src/shape2d.wgsl",
     "./color": "./src/color.wgsl"
   },
   "peerDependencies": {

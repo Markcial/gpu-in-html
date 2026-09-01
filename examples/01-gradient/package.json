@@ -11,6 +11,7 @@
   "dependencies": {
     "@gpu-in-html/harness": "workspace:*",
     "@gpu-in-html/wgsl": "workspace:*",
+    "@vgpu/wgsl-std": "^0.3.1",
     "vgpu": "^0.3.1"
   },
   "devDependencies": {

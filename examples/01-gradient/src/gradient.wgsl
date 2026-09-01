@@ -1,8 +1,10 @@
 // Entry shader. Bindings live here, never in the imported modules.
 
 import { centered, polar } from "@gpu-in-html/wgsl/space";
-import { paletteDefault, tonemapAces, linearToSrgb } from "@gpu-in-html/wgsl/color";
+import { paletteDefault } from "@gpu-in-html/wgsl/color";
 import { pulse } from "@gpu-in-html/wgsl/shaping";
+// Transfer functions and tonemapping come from the vgpu standard library.
+import { linearToSrgb3, tonemapAces } from "@vgpu/wgsl-std/color";
 
 struct Params {
   resolution: vec2f,
@@ -26,5 +28,5 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let ring = pulse(pol.x, 0.55 + 0.12 * sin(params.time * 0.6), 0.28);
   color *= 0.30 + 1.15 * ring;
 
-  return vec4f(linearToSrgb(tonemapAces(color)), 1.0);
+  return vec4f(linearToSrgb3(tonemapAces(color)), 1.0);
 }

@@ -1,10 +1,14 @@
-// Colour: transfer functions, perceptual space, palettes, and tonemapping.
+// Colour work that @vgpu/wgsl-std does not already cover: palettes and the
+// perceptual space.
 //
 // Pure module — see space.wgsl for the authoring rules these all follow.
 //
-// Everything here works in linear light unless the name says otherwise. Do the
-// arithmetic linear, tonemap once, and encode to sRGB as the last step before
-// writing the fragment.
+// Transfer functions and tonemapping live in `@vgpu/wgsl-std/color`
+// (`linearToSrgb3`, `srgbToLinear3`, `tonemapAces`, `tonemapReinhard`,
+// `luminance`). Import those from there — they are not repeated here.
+//
+// Everything below works in linear light. Do the arithmetic linear, tonemap
+// once, and encode to sRGB last.
 
 export const TAU_COLOR: f32 = 6.28318530717958647692;
 
@@ -23,18 +27,6 @@ export fn paletteDefault(t: f32) -> vec3f {
     vec3f(1.0),
     vec3f(0.0, 0.33, 0.67),
   );
-}
-
-export fn linearToSrgb(c: vec3f) -> vec3f {
-  let low = c * 12.92;
-  let high = 1.055 * pow(max(c, vec3f(0.0)), vec3f(1.0 / 2.4)) - 0.055;
-  return select(high, low, c <= vec3f(0.0031308));
-}
-
-export fn srgbToLinear(c: vec3f) -> vec3f {
-  let low = c / 12.92;
-  let high = pow((max(c, vec3f(0.0)) + 0.055) / 1.055, vec3f(2.4));
-  return select(high, low, c <= vec3f(0.04045));
 }
 
 // Signed cube root, so the Oklab transform survives negative intermediates.
@@ -91,15 +83,4 @@ export fn oklabToOklch(lab: vec3f) -> vec3f {
 // Perceptually even mix between two linear colours, via Oklab.
 export fn mixOklab(a: vec3f, b: vec3f, t: f32) -> vec3f {
   return oklabToLinear(mix(linearToOklab(a), linearToOklab(b), t));
-}
-
-// ACES filmic curve, Narkowicz's fit. Cheap, and it keeps highlights from
-// clipping to flat white.
-export fn tonemapAces(x: vec3f) -> vec3f {
-  let a = 2.51;
-  let b = 0.03;
-  let c = 2.43;
-  let d = 0.59;
-  let e = 0.14;
-  return clamp((x * (a * x + b)) / (x * (c * x + d) + e), vec3f(0.0), vec3f(1.0));
 }

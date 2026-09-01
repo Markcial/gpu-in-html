@@ -47,6 +47,9 @@ function trackPointer(canvas: HTMLCanvasElement): {
   let position: readonly [number, number] = [0.5, 0.5];
   let down = false;
 
+  // Listen on the window, not the canvas. A canvas used as a page background
+  // sits behind the DOM, so pointer events over any UI on top of it would
+  // never reach it and the tracked position would freeze.
   const onMove = (event: PointerEvent) => {
     const rect = canvas.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
@@ -62,17 +65,16 @@ function trackPointer(canvas: HTMLCanvasElement): {
     down = false;
   };
 
-  canvas.addEventListener("pointermove", onMove);
-  canvas.addEventListener("pointerdown", onDown);
-  // Release on the window: a drag that ends off-canvas must not stick.
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerdown", onDown);
   window.addEventListener("pointerup", onUp);
   window.addEventListener("pointercancel", onUp);
 
   return {
     read: () => ({ position, down }),
     dispose() {
-      canvas.removeEventListener("pointermove", onMove);
-      canvas.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     },
