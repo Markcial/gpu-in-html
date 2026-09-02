@@ -58,5 +58,23 @@
     "tags": ["typegpu", "composition", "raymarch", "codegen"],
     "entry": "src/scene.wgsl",
     "still": { "width": 1600, "height": 900, "time": 3.0 }
+  },
+  {
+    "slug": "06-street",
+    "title": "Street works",
+    "blurb": "A street from directly above, with the form painted onto the tarmac. The camera looks straight down for a reason: the form is a screen-space rectangle, and only from overhead does screen space line up with the road plane well enough for the patch to read as paint rather than as an overlay. Height is sold by long shadows instead of perspective. Scrolling drives the camera down the street and folds the far end up and over.",
+    "tags": ["raymarch", "dom-coupled", "scroll-coupled", "domain-bend"],
+    "entry": "src/scene.wgsl",
+    "still": {
+      "width": 1600,
+      "height": 900,
+      "time": 0,
+      "set": {
+        "panelCenter": [0.5, 0.48],
+        "panelHalf": [0.164, 0.4],
+        "scroll": 9,
+        "fold": 0.23
+      }
+    }
   }
 ]
