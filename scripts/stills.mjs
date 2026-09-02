@@ -19,7 +19,7 @@ for (const example of manifest) {
     continue;
   }
 
-  const { width = 1600, height = 900, time = 0, set } = example.still;
+  const { width = 1600, height = 900, time = 0, set, feedback } = example.still;
 
   const args = [
     "scripts/render.mjs",
@@ -37,6 +37,16 @@ for (const example of manifest) {
   // Shaders whose uniforms go beyond resolution and time — a measured layout
   // rect, an interaction state — carry them in the manifest.
   if (set) args.push("-s", JSON.stringify(set));
+
+  // A feedback example's thumbnail has to be wound forward before it exists.
+  // The display shader's path is made relative to the repo here, so the
+  // manifest can name it relative to the example like `entry` does.
+  if (feedback) {
+    args.push("-f", JSON.stringify({
+      ...feedback,
+      display: `examples/${example.slug}/${feedback.display}`,
+    }));
+  }
 
   execFileSync("node", args, { stdio: "inherit" });
 }

@@ -436,5 +436,58 @@
         ]
       }
     }
+  },
+  {
+    "slug": "09-culture",
+    "title": "Culture",
+    "blurb": "A Gray-Scott reaction growing on the page, and the first shader here that can see what it drew last time. Two rgba16float targets are swapped each step: the reaction samples one and renders into the other, sixteen times per displayed frame. The precision is not incidental \u2014 a step moves a concentration by less than one level of an eight-bit channel, so in rgba8unorm the whole system quantises to a standstill. The page enters twice: every rectangle marked data-solid is inert, so the culture grows right up to the text and stops, and the distance to the nearest rectangle picks the feed and kill rates \u2014 coral close in, worms further out. A few thousandths is the whole difference between the two, and the layout is what chooses. Drag to inoculate; focus a field and a colony starts beside the card.",
+    "tags": [
+      "feedback",
+      "ping-pong",
+      "reaction-diffusion",
+      "dom-coupled"
+    ],
+    "entry": "src/step.wgsl",
+    "still": {
+      "width": 1600,
+      "height": 900,
+      "time": 0,
+      "feedback": {
+        "steps": 14000,
+        "scale": 0.42,
+        "reset": 2,
+        "display": "src/display.wgsl"
+      },
+      "set": {
+        "aspect": 1.7778,
+        "obstacleCount": 2,
+        "pointerRadius": 0,
+        "seedStrength": 0,
+        "pointer": [
+          -9,
+          -9
+        ],
+        "focused": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "obstacles": [
+          [
+            0.889,
+            0.4,
+            0.268,
+            0.3
+          ],
+          [
+            0.889,
+            0.93,
+            0.268,
+            0.14
+          ]
+        ]
+      }
+    }
   }
 ]

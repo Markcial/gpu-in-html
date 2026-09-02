@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>09 · Culture</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #e9f2ee;
+        --dim: #8fa39c;
+        --edge: rgba(150, 220, 200, 0.26);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #070b0a;
+        color: var(--ink);
+        font: 15px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+
+      #stage {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 0;
+      }
+
+      .back {
+        position: fixed;
+        top: 16px;
+        left: 18px;
+        z-index: 3;
+        font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        text-decoration: none;
+        color: #eafaf3;
+        background: rgba(7, 12, 11, 0.72);
+        border: 1px solid var(--edge);
+        border-radius: 999px;
+        padding: 9px 14px;
+        backdrop-filter: blur(8px);
+      }
+
+      main {
+        position: relative;
+        z-index: 1;
+        max-width: 520px;
+        margin: 0 auto;
+        padding: 14vh 22px 20vh;
+      }
+
+      /* Anything carrying data-solid is inert: the reaction is held at its
+         fixed point inside these rectangles, so the culture grows right up to
+         the edge of the text and stops there rather than crawling over it.
+         The same rectangles also choose the feed and kill rates around them. */
+      .panel,
+      .notes {
+        border: 1px solid var(--edge);
+        border-radius: 14px;
+        padding: 26px 24px 28px;
+        background: rgba(6, 11, 10, 0.82);
+      }
+
+      .notes {
+        margin-top: 26px;
+        color: var(--dim);
+        font-size: 13.5px;
+      }
+
+      .notes p {
+        margin: 0 0 14px;
+      }
+
+      .notes p:last-child {
+        margin-bottom: 0;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 27px;
+        letter-spacing: -0.015em;
+      }
+
+      .lede {
+        margin: 0 0 24px;
+        color: var(--dim);
+        font-size: 14px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      label {
+        font: 600 10.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+
+      input,
+      select {
+        font: inherit;
+        width: 100%;
+        color: var(--ink);
+        padding: 10px 12px;
+        border-radius: 7px;
+        border: 1px solid var(--edge);
+        background: rgba(10, 17, 15, 0.85);
+      }
+
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: rgba(140, 240, 205, 0.75);
+      }
+
+      button {
+        font: inherit;
+        font-weight: 650;
+        width: 100%;
+        margin-top: 8px;
+        color: #05100c;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        background: #86e6c2;
+        cursor: pointer;
+      }
+
+      button:hover {
+        filter: brightness(1.08);
+      }
+
+      code {
+        font: 0.9em/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #a7e9d2;
+      }
+
+      #error {
+        position: fixed;
+        inset: auto 18px 18px;
+        z-index: 4;
+        margin: 0;
+        padding: 12px;
+        background: #240a0a;
+        color: #ff9a9a;
+        font: 12px/1.5 ui-monospace, Menlo, monospace;
+        white-space: pre-wrap;
+      }
+
+      #error:empty {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <a class="back" href="../../">← gallery</a>
+
+    <main>
+      <section class="panel" data-solid>
+        <h1>Culture</h1>
+        <p class="lede">
+          A Gray-Scott reaction growing on the page. Drag anywhere on the medium to inoculate it;
+          focus a field below and a colony starts beside the card, level with it.
+        </p>
+
+        <div class="row">
+          <div class="field">
+            <label for="strain">Strain</label>
+            <input id="strain" type="text" placeholder="GS-0367" />
+          </div>
+          <div class="field">
+            <label for="passage">Passage</label>
+            <input id="passage" type="text" placeholder="14" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="medium">Medium</label>
+          <select id="medium">
+            <option>Agar — 1.5%</option>
+            <option>Broth</option>
+            <option>Slant</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="observed">Observed</label>
+          <input id="observed" type="text" placeholder="Labyrinthine near the plate wall" />
+        </div>
+
+        <button type="button" id="reseed">Reseed the plate</button>
+      </section>
+
+      <div class="notes" data-solid>
+        <p>
+          This is the first shader here that can see what it drew last time. The host keeps two
+          identical <code>rgba16float</code> targets and swaps them each step: the reaction samples
+          one and renders into the other, which becomes the input for the next call. Sixteen steps run
+          per displayed frame, because a reaction advanced once per frame at sixty hertz is too slow
+          to watch.
+        </p>
+        <p>
+          The precision is not incidental. A single step moves a concentration by less than one
+          level of an eight-bit channel, so in <code>rgba8unorm</code> the whole system quantises to
+          a standstill within a second of looking fine.
+        </p>
+        <p>
+          The page enters twice. Every rectangle marked <code>data-solid</code> is inert — the
+          reaction is pinned at its fixed point inside, which is why the growth stops dead at this
+          box instead of crawling over the words. And the distance to the nearest rectangle picks
+          the feed and kill rates: close in, the culture goes labyrinthine; further out it breaks
+          into spots that divide. A few thousandths is the whole difference, and the layout is what
+          chooses.
+        </p>
+      </div>
+    </main>
+
+    <pre id="error"></pre>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
