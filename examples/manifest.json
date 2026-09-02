@@ -2,25 +2,46 @@
   {
     "slug": "01-gradient",
     "title": "Gradient",
-    "blurb": "A fullscreen fragment shader and nothing else — the smallest thing in the repo that renders. Sweeps a cosine palette around the polar angle, with a breathing ring on the radius.",
-    "tags": ["palette", "polar", "starter"],
+    "blurb": "A fullscreen fragment shader and nothing else \u2014 the smallest thing in the repo that renders. Sweeps a cosine palette around the polar angle, with a breathing ring on the radius.",
+    "tags": [
+      "palette",
+      "polar",
+      "starter"
+    ],
     "entry": "src/gradient.wgsl",
-    "still": { "width": 1600, "height": 900, "time": 2.5 }
+    "still": {
+      "width": 1600,
+      "height": 900,
+      "time": 2.5
+    }
   },
   {
     "slug": "02-cloud-form",
     "title": "Cloud form",
     "blurb": "A real HTML form with no background of its own, over a canvas drawing the cloud that serves as its chrome. A ResizeObserver feeds the form's measured rect to the shader, so the silhouette tracks the DOM through any reflow, and focus swells the cloud.",
-    "tags": ["sdf", "dom-coupled", "noise"],
+    "tags": [
+      "sdf",
+      "dom-coupled",
+      "noise"
+    ],
     "entry": "src/scene.wgsl",
     "still": {
       "width": 1600,
       "height": 900,
       "time": 3.0,
       "set": {
-        "cloudCenter": [0.5, 0.5],
-        "cloudHalf": [0.164, 0.272],
-        "pointer": [0.5, 0.5],
+        "cloudCenter": [
+          0.5,
+          0.5
+        ],
+        "cloudHalf": [
+          0.164,
+          0.272
+        ],
+        "pointer": [
+          0.5,
+          0.5
+        ],
         "focus": 1
       }
     }
@@ -28,51 +49,321 @@
   {
     "slug": "03-tetsuo",
     "title": "Mutation",
-    "blurb": "A raymarched arm coming apart, after the Tetsuo transformation. Masses erupt along the limb through smooth unions, and the tissue is separated into cells by a Voronoi projected cylindrically around the arm — muscle, bruise, fat and something colder, each cell picking one. Backscattered light through the thin parts gives it the volume a flat 2D field cannot. A slider drives the whole thing.",
-    "tags": ["raymarch", "sdf-3d", "voronoi", "subsurface"],
+    "blurb": "A raymarched arm coming apart, after the Tetsuo transformation. Masses erupt along the limb through smooth unions, and the tissue is separated into cells by a Voronoi projected cylindrically around the arm \u2014 muscle, bruise, fat and something colder, each cell picking one. Backscattered light through the thin parts gives it the volume a flat 2D field cannot. A slider drives the whole thing.",
+    "tags": [
+      "raymarch",
+      "sdf-3d",
+      "voronoi",
+      "subsurface"
+    ],
     "entry": "src/scene.wgsl",
     "still": {
       "width": 1600,
       "height": 900,
       "time": 6.0,
-      "set": { "pointer": [0.5, 0.5], "mutation": 0.7 }
+      "set": {
+        "pointer": [
+          0.5,
+          0.5
+        ],
+        "mutation": 0.7
+      }
     }
   },
   {
     "slug": "04-organ",
     "title": "Endoluminal intake",
-    "blurb": "The same cylinder as the arm, turned inside out and looked at rather than travelled down. The camera does not move and neither does the relief: nodules sit on Voronoi seed points, which scatter far more evenly than noise, and stay where they are. The whole wall moves as one on a heartbeat — a strong pulse, a weaker one after it, then a pause — because a wave with a spatial phase slides features through frame and reads as peristalsis instead. The same waveform flushes the tissue redder on systole, so the beat reads as blood arriving. Blue veins branch under the mucosa as actual trees rather than noise contours, so no branch ever closes a loop and every tip tapers away. A long HTML form sits on it with no panel of its own: the shader congests the wall where the form presses — pinched pale at the rim, pooling dark inside — and red-and-white type sits straight on the tissue. Scrolling does not move the tissue past the camera — it hands the scroll position to the shader and moves the camera along the wall.",
-    "tags": ["raymarch", "interior", "heartbeat", "scroll-coupled"],
+    "blurb": "The same cylinder as the arm, turned inside out and looked at rather than travelled down. The camera does not move and neither does the relief: nodules sit on Voronoi seed points, which scatter far more evenly than noise, and stay where they are. The whole wall moves as one on a heartbeat \u2014 a strong pulse, a weaker one after it, then a pause \u2014 because a wave with a spatial phase slides features through frame and reads as peristalsis instead. The same waveform flushes the tissue redder on systole, so the beat reads as blood arriving. Blue veins branch under the mucosa as actual trees rather than noise contours, so no branch ever closes a loop and every tip tapers away. A long HTML form sits on it with no panel of its own: the shader congests the wall where the form presses \u2014 pinched pale at the rim, pooling dark inside \u2014 and red-and-white type sits straight on the tissue. Scrolling does not move the tissue past the camera \u2014 it hands the scroll position to the shader and moves the camera along the wall.",
+    "tags": [
+      "raymarch",
+      "interior",
+      "heartbeat",
+      "scroll-coupled"
+    ],
     "entry": "src/scene.wgsl",
     "still": {
       "width": 1600,
       "height": 900,
       "time": 20.0,
-      "set": { "tone": 0.55 }
+      "set": {
+        "tone": 0.55
+      }
     }
   },
   {
     "slug": "05-forge",
     "title": "Forge",
-    "blurb": "Scenes composed as values: combinators take distance functions and return new ones, so the scene reads displace(smoothUnion(subtract(sphere, box), at(torus))) and each one emits a real WGSL function with its operands inlined. TypeGPU does that at build time and writes an ordinary vgpu module, so the browser never loads it and everything downstream — the resolver, tree-shaking, shader validation, this thumbnail — works as if the file had been written by hand.",
-    "tags": ["typegpu", "composition", "raymarch", "codegen"],
+    "blurb": "Scenes composed as values: combinators take distance functions and return new ones, so the scene reads displace(smoothUnion(subtract(sphere, box), at(torus))) and each one emits a real WGSL function with its operands inlined. TypeGPU does that at build time and writes an ordinary vgpu module, so the browser never loads it and everything downstream \u2014 the resolver, tree-shaking, shader validation, this thumbnail \u2014 works as if the file had been written by hand.",
+    "tags": [
+      "typegpu",
+      "composition",
+      "raymarch",
+      "codegen"
+    ],
     "entry": "src/scene.wgsl",
-    "still": { "width": 1600, "height": 900, "time": 3.0 }
+    "still": {
+      "width": 1600,
+      "height": 900,
+      "time": 3.0
+    }
   },
   {
     "slug": "06-street",
     "title": "Street works",
     "blurb": "An isometric block that gets out of the form's way. The camera is orthographic, which is the whole trick: world-to-screen is then a fixed linear map, so the shader can project any sample point and ask whether it lands inside the form's measured rect. Where it does, nothing is allowed to stand: the buildings cut back from the edge and the street widens into a paved plaza under the page. Their windows are shaded on from the hit position and the face normal rather than modelled, so a facade full of them costs the same as a bare wall. The clearing tracks only the visible slice of a three-page form; a rect three screens tall would delete the city rather than make room in it.",
-    "tags": ["raymarch", "dom-coupled", "scroll-coupled", "isometric"],
+    "tags": [
+      "raymarch",
+      "dom-coupled",
+      "scroll-coupled",
+      "isometric"
+    ],
     "entry": "src/scene.wgsl",
     "still": {
       "width": 1600,
       "height": 900,
       "time": 0,
       "set": {
-        "panelCenter": [0.5, 0.5],
-        "panelHalf": [0.145, 0.62],
+        "panelCenter": [
+          0.5,
+          0.5
+        ],
+        "panelHalf": [
+          0.145,
+          0.62
+        ],
         "scroll": 9
+      }
+    }
+  },
+  {
+    "slug": "07-marginalia",
+    "title": "Marginalia",
+    "blurb": "A page that highlights itself, line by line. Every other DOM-coupled example here hands the shader one rectangle; this one hands it up to forty-eight, because Range.getClientRects() returns one rectangle per line box \u2014 the browser reporting where its own line breaking landed. Line breaking is the one part a shader genuinely cannot do: it depends on the font file, the hyphenation dictionary, the reader's zoom. So the browser measures and the shader draws, a level finer than a block box. The ragged right edge of the marks is not noise; it is where each line of text actually stops. Marks are seeded per line so nothing crawls, the ink multiplies the paper rather than covering it, and a stroke draws itself left to right as its line passes the sweep. Hovering a line inks it with a nib that has not dried out yet.",
+    "tags": [
+      "dom-coupled",
+      "text",
+      "uniform-array",
+      "scroll-coupled"
+    ],
+    "entry": "src/scene.wgsl",
+    "still": {
+      "width": 1600,
+      "height": 900,
+      "time": 0,
+      "set": {
+        "pointer": [
+          0.5,
+          0.42
+        ],
+        "lineCount": 34,
+        "marginX": 0.3088,
+        "sweep": 0.82,
+        "lines": [
+          [
+            0.325,
+            0.6319,
+            0.075,
+            0.1083
+          ],
+          [
+            0.325,
+            0.6226,
+            0.1128,
+            0.1461
+          ],
+          [
+            0.325,
+            0.6346,
+            0.1506,
+            0.1839
+          ],
+          [
+            0.325,
+            0.5013,
+            0.1883,
+            0.2217
+          ],
+          [
+            0.325,
+            0.6547,
+            0.2261,
+            0.2594
+          ],
+          [
+            0.325,
+            0.478,
+            0.2639,
+            0.2972
+          ],
+          [
+            0.325,
+            0.5347,
+            0.3217,
+            0.355
+          ],
+          [
+            0.325,
+            0.5811,
+            0.3594,
+            0.3928
+          ],
+          [
+            0.325,
+            0.6715,
+            0.3972,
+            0.4306
+          ],
+          [
+            0.325,
+            0.6373,
+            0.435,
+            0.4683
+          ],
+          [
+            0.325,
+            0.4457,
+            0.4728,
+            0.5061
+          ],
+          [
+            0.325,
+            0.5828,
+            0.5106,
+            0.5439
+          ],
+          [
+            0.325,
+            0.4711,
+            0.5483,
+            0.5817
+          ],
+          [
+            0.325,
+            0.496,
+            0.6061,
+            0.6394
+          ],
+          [
+            0.325,
+            0.6596,
+            0.6439,
+            0.6772
+          ],
+          [
+            0.325,
+            0.6397,
+            0.6817,
+            0.715
+          ],
+          [
+            0.325,
+            0.6419,
+            0.7194,
+            0.7528
+          ],
+          [
+            0.325,
+            0.6043,
+            0.7572,
+            0.7906
+          ],
+          [
+            0.325,
+            0.6746,
+            0.795,
+            0.8283
+          ],
+          [
+            0.325,
+            0.6464,
+            0.8328,
+            0.8661
+          ],
+          [
+            0.325,
+            0.5995,
+            0.8706,
+            0.9039
+          ],
+          [
+            0.325,
+            0.5839,
+            0.9283,
+            0.9617
+          ],
+          [
+            0.325,
+            0.6162,
+            0.9661,
+            0.9994
+          ],
+          [
+            0.325,
+            0.6149,
+            1.0039,
+            1.0372
+          ],
+          [
+            0.325,
+            0.66,
+            1.0417,
+            1.075
+          ],
+          [
+            0.325,
+            0.4675,
+            1.0794,
+            1.1128
+          ],
+          [
+            0.325,
+            0.6231,
+            1.1172,
+            1.1506
+          ],
+          [
+            0.325,
+            0.6159,
+            1.155,
+            1.1883
+          ],
+          [
+            0.325,
+            0.5145,
+            1.2128,
+            1.2461
+          ],
+          [
+            0.325,
+            0.6034,
+            1.2506,
+            1.2839
+          ],
+          [
+            0.325,
+            0.4812,
+            1.2883,
+            1.3217
+          ],
+          [
+            0.325,
+            0.6513,
+            1.3261,
+            1.3594
+          ],
+          [
+            0.325,
+            0.4716,
+            1.3639,
+            1.3972
+          ],
+          [
+            0.325,
+            0.4507,
+            1.4017,
+            1.435
+          ]
+        ]
       }
     }
   }

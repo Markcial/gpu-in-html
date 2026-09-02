@@ -1,0 +1,16 @@
+{
+  "name": "@gpu-in-html/example-07-marginalia",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@gpu-in-html/harness": "workspace:*",
+    "@gpu-in-html/wgsl": "workspace:*",
+    "@vgpu/wgsl-std": "^0.3.1",
+    "vgpu": "^0.3.1"
+  },
+  "devDependencies": {
+    "@vgpu/wgsl": "^0.3.1",
+    "typescript": "^5.7.2"
+  }
+}

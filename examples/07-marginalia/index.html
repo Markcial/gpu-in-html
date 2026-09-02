@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>07 · Marginalia</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #1b1a17;
+        --dim: #55524b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #f4f1ea;
+        color: var(--ink);
+        font: 17px/1.75 ui-serif, Georgia, "Times New Roman", serif;
+      }
+
+      #stage {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 0;
+      }
+
+      .back {
+        position: fixed;
+        top: 16px;
+        left: 18px;
+        z-index: 3;
+        font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        text-decoration: none;
+        color: #f6f3ec;
+        background: rgba(20, 19, 16, 0.66);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 999px;
+        padding: 9px 14px;
+        backdrop-filter: blur(8px);
+      }
+
+      main {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: center;
+        padding: 16vh 24px 22vh;
+      }
+
+      /* The column is deliberately narrow, and deliberately NOT justified.
+         Ragged right is the whole demonstration: every mark stops where its
+         line of text stops, and no two stop in the same place. */
+      #page {
+        width: min(46ch, 100%);
+        text-align: left;
+        hyphens: none;
+      }
+
+      h1 {
+        margin: 0 0 4px;
+        font-size: 30px;
+        line-height: 1.24;
+        letter-spacing: -0.012em;
+      }
+
+      .standfirst {
+        margin: 0 0 34px;
+        color: var(--dim);
+        font: italic 16px/1.7 ui-serif, Georgia, serif;
+      }
+
+      h2 {
+        margin: 40px 0 12px;
+        font: 700 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #8a4a12;
+      }
+
+      p {
+        margin: 0 0 20px;
+      }
+
+      ul {
+        margin: 0 0 20px;
+        padding-left: 20px;
+      }
+
+      li {
+        margin-bottom: 10px;
+      }
+
+      code {
+        font: 0.88em/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        background: rgba(27, 26, 23, 0.07);
+        padding: 1px 4px;
+        border-radius: 3px;
+      }
+
+      .hint {
+        margin: 34px 0 0;
+        font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.04em;
+        color: var(--dim);
+      }
+
+      #error {
+        position: fixed;
+        inset: auto 18px 18px;
+        z-index: 4;
+        margin: 0;
+        padding: 12px;
+        background: #240a0a;
+        color: #ff9a9a;
+        font: 12px/1.5 ui-monospace, Menlo, monospace;
+        white-space: pre-wrap;
+      }
+
+      #error:empty {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <a class="back" href="../../">← gallery</a>
+
+    <main>
+      <article id="page">
+        <h1>A page that reads itself</h1>
+        <p class="standfirst">
+          Every other example here hands the shader one rectangle. This one hands it forty-eight,
+          and the browser decides where they go.
+        </p>
+
+        <p>
+          Scroll slowly. As each line of this paragraph rises past two thirds of the way up the
+          window, a highlighter draws itself across it, left to right, and stops just past the last
+          word. Not at the edge of the column — past the last word, wherever that happens to be on
+          that particular line, at your particular window width, in your particular font.
+        </p>
+
+        <p>
+          None of the marks below are HTML. There is no element behind this text and no background
+          on it. The paper, the fibre in the paper, the ink and the pen strokes in the margin are
+          all a single fragment shader running on a canvas fixed behind the page, drawing at your
+          display's refresh rate.
+        </p>
+
+        <h2>How it knows</h2>
+
+        <p>
+          The measurement is one browser API doing something it is rarely asked to do. Take a
+          <code>Range</code>, select the contents of a block element, and call
+          <code>getClientRects()</code> on it. What comes back is not the element's box. It is one
+          rectangle per <em>line box</em> — one per line of text as actually laid out, after
+          wrapping, after the font loaded, after you last resized the window.
+        </p>
+
+        <p>
+          Those rectangles are collected once, converted to document coordinates, and cached.
+          Scrolling does not invalidate them: scrolling moves text on the screen without laying it
+          out again, so the cache survives and the frame loop only has to subtract the scroll
+          position. A resize does invalidate them, and so does a font arriving late, which is why a
+          <code>ResizeObserver</code> and <code>document.fonts.ready</code> both trigger a
+          remeasure.
+        </p>
+
+        <p>
+          Each frame, the lines currently on screen are packed into a uniform array and handed to
+          the shader as a <code>array&lt;vec4f, 48&gt;</code> — left edge, right edge, top, bottom,
+          all in the shader's own coordinate space. The page can be any length. Only what you can
+          see is ever sent.
+        </p>
+
+        <h2>Why this way round</h2>
+
+        <p>
+          Line breaking is the one part of this that a shader genuinely cannot do. It depends on
+          the font file, the hyphenation dictionary, the reader's zoom level, their minimum font
+          size, whether a web font arrived at all. A shader has none of that and never will.
+        </p>
+
+        <p>
+          So the division of labour is the same one the rest of this repository argues for, only
+          drawn a level finer than usual: the browser measures, the shader draws. The browser is
+          the only thing that knows where the fifth line of this paragraph ends. The shader is the
+          only thing that can put a convincing marker stroke there sixty times a second.
+        </p>
+
+        <h2>What makes it look drawn</h2>
+
+        <p>
+          A rectangle snapped to a line box reads as a CSS background, instantly and
+          unmistakably. The marks here spend most of their code avoiding that:
+        </p>
+
+        <ul>
+          <li>
+            The nib overshoots the start of the line, where the hand is still moving, and trails
+            past the last glyph rather than stopping on it.
+          </li>
+          <li>
+            The stroke is taller than the line box, because a real marker covers the ascenders, and
+            it tapers where the pen touches down and lifts.
+          </li>
+          <li>
+            The centre line wanders off the baseline, and the whole stroke sits at a slight angle
+            that differs per line. A hand does not draw parallel to a line of type.
+          </li>
+          <li>
+            Ink runs out along the stroke, unless the line is being marked at this moment, in which
+            case the nib is still loaded.
+          </li>
+          <li>
+            The ink multiplies the paper instead of covering it, so the fibre shows through a mark
+            exactly as it does through a real one.
+          </li>
+        </ul>
+
+        <p>
+          The overshoot and the lean are seeded per line, so the same line always gets the same
+          mark, and no two lines get the same one. Nothing is random per frame; nothing crawls.
+        </p>
+
+        <h2>Try it</h2>
+
+        <p>
+          Put the pointer on a line that has not been marked yet. It inks immediately, with a fully
+          loaded nib rather than a drying one, and the margin tick follows once the stroke is well
+          under way.
+        </p>
+
+        <p>
+          Then resize the window. The text rewraps, every line box moves, and the marks move with
+          them — not approximately, not one frame later, but onto the new lines, because they were
+          never anywhere else. There is no mapping between the marks and the text to get out of
+          step. There is only the measurement.
+        </p>
+
+        <p class="hint">
+          scroll to mark · hover a line to ink it · resize to rewrap
+        </p>
+      </article>
+    </main>
+
+    <pre id="error"></pre>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
