@@ -8,7 +8,7 @@
       :root {
         color-scheme: light;
         --ink: #16181c;
-        --dim: #55585f;
+        --dim: #3c3f46;
         --hair: rgba(20, 22, 26, 0.22);
       }
 
@@ -56,8 +56,8 @@
         padding: 18vh 20px 26vh;
       }
 
-      /* No background: the white rectangle behind this is road paint, drawn by
-         the shader from this element's measured rect. */
+      /* No background: the paved clearing behind this is 3D geometry, opened up
+         by the shader from this element's measured rect. */
       form {
         padding: 34px 30px 38px;
       }
@@ -213,8 +213,9 @@
         <section>
           <h1>Street works permit</h1>
           <p class="lede">
-            The white rectangle under this form is road paint. The shader is handed the form's
-            measured rect and paints the tarmac inside it — scroll to drive down the street.
+            The city is measured against this form. Its rect is projected into the isometric
+            scene every frame, and the block clears out of the way — buildings step down, cars
+            and trees stay out — leaving a paved plaza under the page. Scroll to drive along it.
           </p>
         </section>
 
@@ -230,9 +231,24 @@
               <input id="number" type="number" placeholder="41" />
             </div>
           </div>
+          <div class="row">
+            <div class="field">
+              <label for="extent">Extent (m)</label>
+              <input id="extent" type="number" placeholder="18" />
+            </div>
+            <div class="field">
+              <label for="district">District</label>
+              <select id="district">
+                <option>Centre</option>
+                <option>Vista Alegre</option>
+                <option>Baixador</option>
+                <option>Port</option>
+              </select>
+            </div>
+          </div>
           <div class="field">
-            <label for="extent">Extent (m)</label>
-            <input id="extent" type="number" placeholder="18" />
+            <label for="landmark">Nearest landmark</label>
+            <input id="landmark" type="text" placeholder="Opposite the market hall" />
           </div>
         </section>
 
@@ -244,6 +260,7 @@
               <label class="choice"><input type="radio" name="type" checked /> Resurfacing</label>
               <label class="choice"><input type="radio" name="type" /> Utilities</label>
               <label class="choice"><input type="radio" name="type" /> Markings</label>
+              <label class="choice"><input type="radio" name="type" /> Kerbing</label>
             </div>
           </fieldset>
           <div class="row">
@@ -258,14 +275,156 @@
           </div>
           <div class="row">
             <div class="field">
+              <label for="shift">Shift</label>
+              <select id="shift">
+                <option>Daytime</option>
+                <option>Evening</option>
+                <option>Overnight</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="noise">Noise class</label>
+              <select id="noise">
+                <option>A — hand tools</option>
+                <option>B — compressor</option>
+                <option>C — breaker</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="method">Method statement</label>
+            <textarea id="method" placeholder="Saw cut, excavate, reinstate in two lifts."></textarea>
+          </div>
+        </section>
+
+        <section>
+          <h2>Traffic management</h2>
+          <fieldset>
+            <legend>Lane closures</legend>
+            <div class="choices">
+              <label class="choice"><input type="checkbox" /> Northbound</label>
+              <label class="choice"><input type="checkbox" /> Southbound</label>
+              <label class="choice"><input type="checkbox" /> Footway</label>
+              <label class="choice"><input type="checkbox" /> Parking bays</label>
+            </div>
+          </fieldset>
+          <div class="row">
+            <div class="field">
+              <label for="diversion">Diversion route</label>
+              <input id="diversion" type="text" placeholder="Via Carrer del Mar" />
+            </div>
+            <div class="field">
+              <label for="signage">Signage plan ref</label>
+              <input id="signage" type="text" placeholder="TM-2231-B" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="bays">Bays suspended</label>
+              <input id="bays" type="number" placeholder="6" />
+            </div>
+            <div class="field">
+              <label for="access">Pedestrian access</label>
+              <select id="access">
+                <option>Maintained past works</option>
+                <option>Crossed to opposite side</option>
+                <option>Closed, signed diversion</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>Utilities affected</h2>
+          <fieldset>
+            <legend>Services in the trench</legend>
+            <div class="choices">
+              <label class="choice"><input type="checkbox" /> Water</label>
+              <label class="choice"><input type="checkbox" /> Gas</label>
+              <label class="choice"><input type="checkbox" /> Power</label>
+              <label class="choice"><input type="checkbox" /> Fibre</label>
+              <label class="choice"><input type="checkbox" /> Drainage</label>
+            </div>
+          </fieldset>
+          <div class="row">
+            <div class="field">
+              <label for="depth">Max depth (mm)</label>
+              <input id="depth" type="number" placeholder="750" />
+            </div>
+            <div class="field">
+              <label for="reinstate">Reinstatement</label>
+              <select id="reinstate">
+                <option>Permanent</option>
+                <option>Interim, permanent within 6 months</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="scan">Utility scan reference</label>
+            <input id="scan" type="text" placeholder="GPR-0418" />
+          </div>
+        </section>
+
+        <section>
+          <h2>Notices</h2>
+          <div class="row">
+            <div class="field">
+              <label for="notice">Residents notified</label>
+              <input id="notice" type="date" />
+            </div>
+            <div class="field">
+              <label for="radius">Notice radius (m)</label>
+              <input id="radius" type="number" placeholder="60" />
+            </div>
+          </div>
+          <fieldset>
+            <legend>Consulted</legend>
+            <div class="choices">
+              <label class="choice"><input type="checkbox" /> Bus operator</label>
+              <label class="choice"><input type="checkbox" /> Emergency services</label>
+              <label class="choice"><input type="checkbox" /> Waste collection</label>
+              <label class="choice"><input type="checkbox" /> School</label>
+            </div>
+          </fieldset>
+          <div class="field">
+            <label for="objections">Objections received</label>
+            <textarea id="objections" placeholder="None recorded."></textarea>
+          </div>
+        </section>
+
+        <section>
+          <h2>Applicant</h2>
+          <div class="row">
+            <div class="field">
               <label for="company">Company</label>
               <input id="company" type="text" placeholder="Obres Castelldefels SL" />
             </div>
             <div class="field">
-              <label for="email">Email</label>
-              <input id="email" type="email" placeholder="permits@example.com" />
+              <label for="licence">Licence no.</label>
+              <input id="licence" type="text" placeholder="OC-88214" />
             </div>
           </div>
+          <div class="row">
+            <div class="field">
+              <label for="contact">Site contact</label>
+              <input id="contact" type="text" placeholder="On-call supervisor" />
+            </div>
+            <div class="field">
+              <label for="phone">Phone</label>
+              <input id="phone" type="tel" placeholder="+34 600 000 000" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="permits@example.com" />
+          </div>
+          <fieldset>
+            <legend>Declaration</legend>
+            <div class="choices">
+              <label class="choice"><input type="checkbox" /> Insurance in force</label>
+              <label class="choice"><input type="checkbox" /> Method statement attached</label>
+            </div>
+          </fieldset>
           <button type="submit">Submit permit</button>
         </section>
       </form>

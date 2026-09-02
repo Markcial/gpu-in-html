@@ -62,18 +62,17 @@
   {
     "slug": "06-street",
     "title": "Street works",
-    "blurb": "A street from directly above, with the form painted onto the tarmac. The camera looks straight down for a reason: the form is a screen-space rectangle, and only from overhead does screen space line up with the road plane well enough for the patch to read as paint rather than as an overlay. Height is sold by long shadows instead of perspective. Scrolling drives the camera down the street and folds the far end up and over.",
-    "tags": ["raymarch", "dom-coupled", "scroll-coupled", "domain-bend"],
+    "blurb": "An isometric block that gets out of the form's way. The camera is orthographic, which is the whole trick: world-to-screen is then a fixed linear map, so the shader can project any sample point and ask whether it lands inside the form's measured rect. Where it does, nothing is allowed to stand — buildings step down, cars and trees stay out, and the street widens into a paved plaza under the page. The clearing tracks only the visible slice of a three-page form; a rect three screens tall would delete the city rather than make room in it.",
+    "tags": ["raymarch", "dom-coupled", "scroll-coupled", "isometric"],
     "entry": "src/scene.wgsl",
     "still": {
       "width": 1600,
       "height": 900,
       "time": 0,
       "set": {
-        "panelCenter": [0.5, 0.48],
-        "panelHalf": [0.164, 0.4],
-        "scroll": 9,
-        "fold": 0.23
+        "panelCenter": [0.5, 0.5],
+        "panelHalf": [0.145, 0.62],
+        "scroll": 9
       }
     }
   }

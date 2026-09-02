@@ -28,22 +28,25 @@ try {
       // following them literally makes the camera stutter.
       scroll += (scrollTarget - scroll) * (1 - Math.exp(-ctx.deltaTime * 9));
 
-      // Measured every frame and not eased: the paint has to sit exactly where
-      // the browser drew the form.
+      // Measured every frame and not eased: the clearing has to sit exactly
+      // where the browser drew the form.
       const box = form.getBoundingClientRect();
       const vw = window.innerWidth;
       const vh = window.innerHeight;
 
-      // The fold eases in over the first stretch of street and then holds, so
-      // the top of the page is an ordinary street and the bend is something
-      // you scroll into.
-      const fold = Math.min(scroll * 0.026, 0.32);
+      // The form is about three pages tall, so most of it is off screen at any
+      // moment. Only the visible slice is sent: hand the shader the whole rect
+      // and the clearing grows to three screens of city, which deletes the
+      // scene instead of making room in it. A little overshoot past each edge
+      // keeps the plaza from ending inside the frame.
+      const top = Math.max(box.top, -0.14 * vh);
+      const bottom = Math.min(box.bottom, 1.14 * vh);
+      const visible = Math.max(bottom - top, 0);
 
       return {
         scroll,
-        fold,
-        panelCenter: [(box.left + box.width / 2) / vw, (box.top + box.height / 2) / vh],
-        panelHalf: [box.width / 2 / vw, box.height / 2 / vh],
+        panelCenter: [(box.left + box.width / 2) / vw, (top + bottom) / 2 / vh],
+        panelHalf: [box.width / 2 / vw, visible / 2 / vh],
       };
     },
   });
