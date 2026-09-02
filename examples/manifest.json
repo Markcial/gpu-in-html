@@ -366,5 +366,75 @@
         ]
       }
     }
+  },
+  {
+    "slug": "08-windtunnel",
+    "title": "Wind tunnel",
+    "blurb": "Twenty thousand particles of air blown across a page that is in the way. Every element marked data-solid is measured each frame and handed to a compute shader as a rounded box; the air is deflected twice by each one \u2014 the velocity component heading into the surface is removed, which is what makes flow slide along an edge instead of stopping dead at it, and a push down the outward normal keeps particles out of the interior. Focus or hover a control and its rectangle swells, widening the wake behind it. The particles never travel back through the host: seeded once into a storage buffer, advanced by a compute dispatch, and drawn as instanced quads whose corners come from the vertex index and whose particle comes from the instance index \u2014 no vertex buffer, no geometry, no readback. The thumbnail is the background pass alone, which is the part a fullscreen still can render: the tunnel and a rim of light on everything the browser measured.",
+    "tags": [
+      "compute",
+      "storage",
+      "instancing",
+      "dom-coupled"
+    ],
+    "entry": "src/field.wgsl",
+    "still": {
+      "width": 1600,
+      "height": 900,
+      "time": 0,
+      "set": {
+        "aspect": 1.7778,
+        "obstacleCount": 7,
+        "pointerRadius": 0.045,
+        "pointer": [
+          0.36,
+          0.46
+        ],
+        "obstacles": [
+          [
+            0.7,
+            0.2,
+            0.1,
+            0.022
+          ],
+          [
+            0.745,
+            0.36,
+            0.115,
+            0.024
+          ],
+          [
+            1.033,
+            0.36,
+            0.115,
+            0.024
+          ],
+          [
+            0.889,
+            0.455,
+            0.235,
+            0.024
+          ],
+          [
+            0.889,
+            0.545,
+            0.235,
+            0.024
+          ],
+          [
+            0.889,
+            0.632,
+            0.235,
+            0.026
+          ],
+          [
+            0.889,
+            0.87,
+            0.235,
+            0.12
+          ]
+        ]
+      }
+    }
   }
 ]

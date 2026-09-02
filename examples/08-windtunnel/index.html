@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>08 · Wind tunnel</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #e8edf6;
+        --dim: #8d97ab;
+        --edge: rgba(160, 190, 240, 0.24);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #0b0e14;
+        color: var(--ink);
+        font: 15px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+
+      #stage {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 0;
+      }
+
+      .back {
+        position: fixed;
+        top: 16px;
+        left: 18px;
+        z-index: 3;
+        font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        text-decoration: none;
+        color: #eaf0fb;
+        background: rgba(12, 16, 24, 0.7);
+        border: 1px solid var(--edge);
+        border-radius: 999px;
+        padding: 9px 14px;
+        backdrop-filter: blur(8px);
+      }
+
+      main {
+        position: relative;
+        z-index: 1;
+        max-width: 520px;
+        margin: 0 auto;
+        padding: 15vh 22px 20vh;
+      }
+
+      /* Every element carrying data-solid is measured each frame and handed to
+         the simulation as an obstacle. The panel deliberately is NOT one: if
+         the card were solid the air would part around the whole thing and the
+         controls inside it would never see a single particle. Marking the
+         controls instead lets the flow thread between the fields, which is
+         where the interesting part of the picture is. */
+      .panel {
+        border: 1px solid var(--edge);
+        border-radius: 14px;
+        padding: 26px 24px 28px;
+        background: rgba(9, 12, 18, 0.72);
+        backdrop-filter: blur(3px);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 27px;
+        letter-spacing: -0.015em;
+        display: inline-block;
+      }
+
+      .lede {
+        margin: 0 0 26px;
+        color: var(--dim);
+        font-size: 14px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      label {
+        font: 600 10.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+
+      input,
+      select {
+        font: inherit;
+        width: 100%;
+        color: var(--ink);
+        padding: 10px 12px;
+        border-radius: 7px;
+        border: 1px solid var(--edge);
+        background: rgba(14, 19, 28, 0.75);
+      }
+
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: rgba(150, 195, 255, 0.72);
+      }
+
+      button {
+        font: inherit;
+        font-weight: 650;
+        width: 100%;
+        margin-top: 8px;
+        color: #08111d;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        background: #9ec6ff;
+        cursor: pointer;
+      }
+
+      button:hover {
+        filter: brightness(1.08);
+      }
+
+      .notes {
+        margin: 30px 0 0;
+        color: var(--dim);
+        font-size: 13.5px;
+      }
+
+      .notes p {
+        margin: 0 0 14px;
+      }
+
+      .readout {
+        margin: 24px 0 0;
+        font: 11.5px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.05em;
+        color: var(--dim);
+      }
+
+      code {
+        font: 0.9em/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #b9d3ff;
+      }
+
+      #error {
+        position: fixed;
+        inset: auto 18px 18px;
+        z-index: 4;
+        margin: 0;
+        padding: 12px;
+        background: #240a0a;
+        color: #ff9a9a;
+        font: 12px/1.5 ui-monospace, Menlo, monospace;
+        white-space: pre-wrap;
+      }
+
+      #error:empty {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <a class="back" href="../../">← gallery</a>
+
+    <main>
+      <section class="panel">
+        <h1 data-solid>Wind tunnel</h1>
+        <p class="lede">
+          Twenty thousand particles of air, simulated on the GPU, blowing left to right across a
+          page that is in the way.
+        </p>
+
+        <div class="row">
+          <div class="field">
+            <label for="span">Span</label>
+            <input id="span" data-solid type="text" placeholder="1.24 m" />
+          </div>
+          <div class="field">
+            <label for="chord">Chord</label>
+            <input id="chord" data-solid type="text" placeholder="0.31 m" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="speed">Free stream</label>
+          <select id="speed" data-solid>
+            <option>Low — laminar</option>
+            <option>Medium</option>
+            <option>High — separation</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="notes">Run notes</label>
+          <input id="notes" data-solid type="text" placeholder="Trip strip at 20% chord" />
+        </div>
+
+        <button type="button" data-solid>Start run</button>
+      </section>
+
+      <div class="notes" data-solid>
+        <p>
+          Each element marked <code>data-solid</code> is measured with
+          <code>getBoundingClientRect()</code> every frame and handed to the compute shader as a
+          rounded box. The air is deflected twice by each one: the component of velocity heading
+          into the surface is removed, which is what makes the flow slide along an edge instead of
+          stopping dead at it, and a push down the outward normal keeps particles out of the
+          interior.
+        </p>
+        <p>
+          Focus a field or hover it. The rectangle swells, and the wake behind it widens to match —
+          the simulation is reading the same numbers the browser laid the page out with, so there
+          is nothing to keep in step. Move the pointer into the stream: it is one more obstacle,
+          and the only one you can steer.
+        </p>
+        <p>
+          The particles never travel back through the host. They are seeded once into a storage
+          buffer, advanced by a compute dispatch, and drawn as instanced quads whose corners come
+          from <code>@builtin(vertex_index)</code> and whose particle comes from
+          <code>@builtin(instance_index)</code>. No vertex buffer, no geometry, no readback.
+        </p>
+      </div>
+
+      <p class="readout" data-solid>
+        particles <span id="count">—</span> · workgroup 64 · storage 640 KB · streaks drawn
+        additively, one instanced quad each
+      </p>
+    </main>
+
+    <pre id="error"></pre>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
