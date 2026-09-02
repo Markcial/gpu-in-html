@@ -22,7 +22,7 @@ import { linearToSrgb3, srgbToLinear3, tonemapAces } from "@vgpu/wgsl-std/color"
 import { fbmSimplex3d } from "@vgpu/wgsl-std/noise/simplex";
 import { pcg2d, unitFloat } from "@vgpu/wgsl-std/hash";
 import { saturate } from "@vgpu/wgsl-std/math";
-import { ROAD_HALF, citySdf, lotSeed, lotTint } from "./city.wgsl";
+import { ROAD_HALF, citySdf, lotCentre, lotExtent, lotSeed, lotTint } from "./city.wgsl";
 
 struct Params {
   resolution: vec2f,
@@ -48,7 +48,9 @@ const ISO_UP: vec3f = vec3f(-0.4082483, 0.8164966, -0.4082483);
 const VIEW: f32 = 20.0;
 const SUN: vec3f = vec3f(-0.42, 0.66, -0.62);
 
-// Window pane spacing, in world units: one storey is WIN_V tall.
+// Target pane spacing in world units. Both are targets, not the spacing that
+// is used: each wall rounds them to a whole number of bays and floors that
+// fits between its own corners.
 const WIN_U: f32 = 1.15;
 const WIN_V: f32 = 1.30;
 const GLASS: vec3f = vec3f(0.17, 0.20, 0.25);
@@ -132,8 +134,14 @@ fn shadow(p: vec3f, light: vec3f, aspect: f32) -> f32 {
 // thousands of extra distance evaluations a pixel for something a wall-space
 // coordinate can draw exactly. Returns coverage in x and lit-or-dark in y.
 //
-// The wall's own 2D frame comes from the dominant normal axis. A face whose
-// normal is mostly x runs along z, so its horizontal coordinate is z.
+// The grid is fitted to each building rather than tiled through world space.
+// A world-space grid cuts a pane in half wherever a wall happens to start and
+// wherever a roof happens to end, so every corner and parapet showed a sliced
+// window. Here the wall's own frame is rebuilt from the hit point — the
+// dominant normal axis says which way the wall runs, the lot gives its centre
+// and half extent — and an integer number of bays is divided into it. The
+// panes then land whole and symmetric between the corners by construction,
+// and each building gets its own bay width.
 fn windowsAt(p: vec3f, n: vec3f) -> vec2f {
   let wall = 1.0 - smoothstep(0.25, 0.6, abs(n.y));
   // Only on true box faces. Where a building is sagging into the plaza its
@@ -141,28 +149,45 @@ fn windowsAt(p: vec3f, n: vec3f) -> vec2f {
   // breaks up into speckle.
   let axis = max(max(abs(n.x), abs(n.y)), abs(n.z));
   let flat = smoothstep(0.04, 0.005, 1.0 - axis);
+
+  let centre = lotCentre(p);
+  let extent = lotExtent(p);
+
+  // A face whose normal is mostly x runs along z, so its horizontal coordinate
+  // is z and its half width is the lot's half extent in z.
   let facingX = abs(n.x) > abs(n.z);
-  let u = select(p.x, p.z, facingX);
+  let across = select(p.x - centre.x, p.z - centre.y, facingX);
+  let halfU = select(extent.x, extent.y, facingX);
 
-  let cu = floor(u / WIN_U);
-  let cv = floor(p.y / WIN_V);
-  let fu = fract(u / WIN_U);
-  let fv = fract(p.y / WIN_V);
+  // Bays: whole panes across the wall, so both corners get a margin instead of
+  // a slice. At least one, or a narrow return wall would divide by zero.
+  let bays = max(round(2.0 * halfU / WIN_U), 1.0);
+  let su = (across + halfU) / (2.0 * halfU) * bays;
 
-  let pane = smoothstep(0.20, 0.27, fu) * smoothstep(0.80, 0.73, fu)
-    * smoothstep(0.16, 0.23, fv) * smoothstep(0.74, 0.67, fv);
+  // Floors between the shopfront and the parapet, whole in the same way, so
+  // the top row is never cut off by the roof.
+  let sill = 1.15;
+  let head = extent.z - 0.5;
+  let rise = max(head - sill, 0.0);
+  let floors = floor(rise / WIN_V);
+  let sv = (p.y - sill) / max(rise, 1e-4) * floors;
 
-  // Nothing at street level: that floor is shopfront, and a pane sliced off by
-  // the pavement reads as a hole in the wall.
-  let above = smoothstep(0.9, 1.2, p.y);
+  let fu = fract(su);
+  let fv = fract(sv);
+  let pane = smoothstep(0.20, 0.28, fu) * smoothstep(0.80, 0.72, fu)
+    * smoothstep(0.18, 0.26, fv) * smoothstep(0.78, 0.70, fv);
+
+  // Inside the glazed band at all: below the sill is shopfront, above the head
+  // is parapet, and a building too short for one floor gets none.
+  let band = step(sill, p.y) * step(p.y, head) * step(1.0, floors);
 
   // Seeded per building and per face as well as per pane, so two neighbours do
   // not light the same windows at the same height.
   let face = select(0u, 8191u, facingX);
-  let key = bitcast<vec2u>(vec2i(i32(cu), i32(cv))) + vec2u(lotSeed(p) + face, 7u);
+  let key = bitcast<vec2u>(vec2i(i32(floor(su)), i32(floor(sv)))) + vec2u(lotSeed(p) + face, 7u);
   let lit = step(0.76, unitFloat(pcg2d(key).x));
 
-  return vec2f(pane * above * wall * flat, lit);
+  return vec2f(pane * band * wall * flat, lit);
 }
 
 @fragment
