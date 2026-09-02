@@ -62,7 +62,7 @@
   {
     "slug": "06-street",
     "title": "Street works",
-    "blurb": "An isometric block that gets out of the form's way. The camera is orthographic, which is the whole trick: world-to-screen is then a fixed linear map, so the shader can project any sample point and ask whether it lands inside the form's measured rect. Where it does, nothing is allowed to stand — buildings step down, cars and trees stay out, and the street widens into a paved plaza under the page. The clearing tracks only the visible slice of a three-page form; a rect three screens tall would delete the city rather than make room in it.",
+    "blurb": "An isometric block that gets out of the form's way. The camera is orthographic, which is the whole trick: world-to-screen is then a fixed linear map, so the shader can project any sample point and ask whether it lands inside the form's measured rect. Where it does, nothing is allowed to stand: the buildings cut back from the edge and the street widens into a paved plaza under the page. Their windows are shaded on from the hit position and the face normal rather than modelled, so a facade full of them costs the same as a bare wall. The clearing tracks only the visible slice of a three-page form; a rect three screens tall would delete the city rather than make room in it.",
     "tags": ["raymarch", "dom-coupled", "scroll-coupled", "isometric"],
     "entry": "src/scene.wgsl",
     "still": {

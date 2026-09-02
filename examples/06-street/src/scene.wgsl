@@ -1,5 +1,9 @@
 // Entry shader: an isometric city block that leaves a plaza for the form.
 //
+// The block is buildings and nothing else. Windows are shaded on from the hit
+// position and the face normal rather than modelled, so a facade full of them
+// costs the same as a bare wall.
+//
 // The camera is orthographic and true-isometric, which is what makes the
 // coupling work. Under an orthographic projection the map from world to screen
 // is a fixed linear one, so the shader can project any sample point to screen
@@ -16,8 +20,9 @@ import { applyGrain, contrast, vignette } from "@gpu-in-html/wgsl/post";
 import { sdRoundedBox } from "@gpu-in-html/wgsl/shape2d";
 import { linearToSrgb3, srgbToLinear3, tonemapAces } from "@vgpu/wgsl-std/color";
 import { fbmSimplex3d } from "@vgpu/wgsl-std/noise/simplex";
+import { pcg2d, unitFloat } from "@vgpu/wgsl-std/hash";
 import { saturate } from "@vgpu/wgsl-std/math";
-import { ROAD_HALF, citySdf, lotTint } from "./city.wgsl";
+import { ROAD_HALF, citySdf, lotSeed, lotTint } from "./city.wgsl";
 
 struct Params {
   resolution: vec2f,
@@ -42,6 +47,12 @@ const ISO_UP: vec3f = vec3f(-0.4082483, 0.8164966, -0.4082483);
 // World units the frame covers vertically.
 const VIEW: f32 = 20.0;
 const SUN: vec3f = vec3f(-0.42, 0.66, -0.62);
+
+// Window pane spacing, in world units: one storey is WIN_V tall.
+const WIN_U: f32 = 1.15;
+const WIN_V: f32 = 1.30;
+const GLASS: vec3f = vec3f(0.17, 0.20, 0.25);
+const WARM: vec3f = vec3f(0.98, 0.84, 0.58);
 
 
 fn focusPoint() -> vec3f {
@@ -69,7 +80,7 @@ fn plazaAt(p: vec3f, aspect: f32) -> f32 {
   // A wide ramp on purpose. A hard edge would slice buildings in half; over a
   // few world units the block instead steps down toward the clearing, which
   // reads as a terrace rather than as damage.
-  return smoothstep(0.15, -0.02, d) * enabled;
+  return smoothstep(0.045, -0.015, d) * enabled;
 }
 
 fn sceneSdf(p: vec3f, aspect: f32) -> f32 {
@@ -117,6 +128,43 @@ fn shadow(p: vec3f, light: vec3f, aspect: f32) -> f32 {
   return saturate(result);
 }
 
+// Windows, shaded rather than modelled: adding a recess per pane would cost
+// thousands of extra distance evaluations a pixel for something a wall-space
+// coordinate can draw exactly. Returns coverage in x and lit-or-dark in y.
+//
+// The wall's own 2D frame comes from the dominant normal axis. A face whose
+// normal is mostly x runs along z, so its horizontal coordinate is z.
+fn windowsAt(p: vec3f, n: vec3f) -> vec2f {
+  let wall = 1.0 - smoothstep(0.25, 0.6, abs(n.y));
+  // Only on true box faces. Where a building is sagging into the plaza its
+  // normals sweep through every direction, and a grid drawn on that surface
+  // breaks up into speckle.
+  let axis = max(max(abs(n.x), abs(n.y)), abs(n.z));
+  let flat = smoothstep(0.04, 0.005, 1.0 - axis);
+  let facingX = abs(n.x) > abs(n.z);
+  let u = select(p.x, p.z, facingX);
+
+  let cu = floor(u / WIN_U);
+  let cv = floor(p.y / WIN_V);
+  let fu = fract(u / WIN_U);
+  let fv = fract(p.y / WIN_V);
+
+  let pane = smoothstep(0.20, 0.27, fu) * smoothstep(0.80, 0.73, fu)
+    * smoothstep(0.16, 0.23, fv) * smoothstep(0.74, 0.67, fv);
+
+  // Nothing at street level: that floor is shopfront, and a pane sliced off by
+  // the pavement reads as a hole in the wall.
+  let above = smoothstep(0.9, 1.2, p.y);
+
+  // Seeded per building and per face as well as per pane, so two neighbours do
+  // not light the same windows at the same height.
+  let face = select(0u, 8191u, facingX);
+  let key = bitcast<vec2u>(vec2i(i32(cu), i32(cv))) + vec2u(lotSeed(p) + face, 7u);
+  let lit = step(0.76, unitFloat(pcg2d(key).x));
+
+  return vec2f(pane * above * wall * flat, lit);
+}
+
 @fragment
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let aspect = params.resolution.x / max(params.resolution.y, 1e-4);
@@ -128,6 +176,8 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let origin = focusPoint() + ISO_RIGHT * px + ISO_UP * py - ISO_FWD * 60.0;
 
   var col = srgbToLinear3(vec3f(0.62, 0.66, 0.72));
+  // Lit panes read as light sources, not as paint, so they survive shadow.
+  var glow = 0.0;
 
   let t = march(origin, ISO_FWD, aspect);
   if (t > 0.0) {
@@ -171,29 +221,24 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
       // so the clearing reads as a square the street widens into — but mostly
       // paved, because dark tarmac under body text is unreadable and the page
       // has to stay legible wherever the browser puts it.
-      albedo = mix(albedo, paving, plaza * select(1.0, 0.68, onRoad));
+      albedo = mix(albedo, paving, plaza * select(1.0, 0.52, onRoad));
     } else {
       let tint = lotTint(hit);
-      albedo = srgbToLinear3(mix(vec3f(0.36, 0.35, 0.37), vec3f(0.66, 0.62, 0.57), tint));
+      albedo = srgbToLinear3(mix(vec3f(0.50, 0.49, 0.50), vec3f(0.78, 0.74, 0.68), tint));
       let roof = fbmSimplex3d(hit * 2.2 + vec3f(7.0, 0.0, 0.0), 3, 2.0, 0.5);
       albedo *= 0.90 + 0.18 * roof;
 
-      // Street trees, told apart by where they sit rather than by a material
-      // id: the SDF is one long min() and carries no id out with it. The
-      // canopies are the only thing between the kerb and the building line
-      // that stands above a parked car and below a roof.
-      let tree = step(1.05, hit.y)
-        * step(hit.y, 3.1)
-        * smoothstep(6.35, 6.05, abs(hit.x))
-        * (1.0 - step(0.002, plaza));
-      albedo = mix(albedo, srgbToLinear3(vec3f(0.29, 0.39, 0.25)), tree);
+      let win = windowsAt(hit, n);
+      albedo = mix(albedo, srgbToLinear3(mix(GLASS, WARM, win.y)), win.x);
+      glow = win.x * win.y;
     }
 
     // Vertical faces see half the sky, so the ambient term follows the normal
     // instead of switching off — otherwise every shaded wall reads as a hole.
     let skyFacing = 0.5 + 0.5 * n.y;
     let sky = srgbToLinear3(vec3f(0.47, 0.55, 0.69));
-    col = albedo * mix(0.30, 0.56, skyFacing) + albedo * lit * 1.00 + albedo * sky * 0.26 * skyFacing;
+    col = albedo * mix(0.44, 0.60, skyFacing) + albedo * lit * 1.00 + albedo * sky * 0.26 * skyFacing;
+    col += srgbToLinear3(WARM) * glow * 0.34;
   }
 
   col = tonemapAces(col);
