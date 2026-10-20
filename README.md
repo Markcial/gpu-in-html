@@ -4,9 +4,7 @@
 
 **Reusable pure-WGSL primitives for [vgpu](https://vgpu.sh), and a gallery of WebGPU experiments where the page and the shader talk to each other.**
 
-<!-- TODO(Marc): CI badge hidden because ci.yml is failing (last 3 runs). `pnpm check` dies with VGPU-NODE-NO-ADAPTER: the GitHub runner has no WebGPU adapter.
-vgpu suggests adding a `npx vgpu install-software-renderer` step before `pnpm check`. Once green, restore:
-[![ci](https://github.com/Markcial/gpu-in-html/actions/workflows/ci.yml/badge.svg)](https://github.com/Markcial/gpu-in-html/actions/workflows/ci.yml) -->
+[![ci](https://github.com/Markcial/gpu-in-html/actions/workflows/ci.yml/badge.svg)](https://github.com/Markcial/gpu-in-html/actions/workflows/ci.yml)
 ![WGSL](https://img.shields.io/badge/WGSL-005A9C)
 ![WebGPU](https://img.shields.io/badge/WebGPU-required-005A9C)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
