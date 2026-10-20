@@ -20,6 +20,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # ubuntu-latest has no WebGPU adapter. `vgpu check --require-validation`
+      # does not download a CPU renderer on its own; install the portable
+      # lavapipe build so device-backed validation can acquire one.
+      - run: pnpm exec vgpu install-software-renderer
+
       # Compiles every shader and its module graph. Catches a broken primitive
       # before any example has to import it.
       - run: pnpm check

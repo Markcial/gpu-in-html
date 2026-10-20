@@ -1,13 +1,50 @@
-# gpu-in-html
+<div align="center">
 
-Reusable WGSL primitives for [vgpu](https://vgpu.sh), and a growing set of
-examples built on top of them.
+# 🎨 gpu-in-html
+
+**Reusable pure-WGSL primitives for [vgpu](https://vgpu.sh), and a gallery of WebGPU experiments where the page and the shader talk to each other.**
+
+<!-- TODO(Marc): CI badge hidden because ci.yml is failing (last 3 runs). `pnpm check` dies with VGPU-NODE-NO-ADAPTER: the GitHub runner has no WebGPU adapter.
+vgpu suggests adding a `npx vgpu install-software-renderer` step before `pnpm check`. Once green, restore:
+[![ci](https://github.com/Markcial/gpu-in-html/actions/workflows/ci.yml/badge.svg)](https://github.com/Markcial/gpu-in-html/actions/workflows/ci.yml) -->
+![WGSL](https://img.shields.io/badge/WGSL-005A9C)
+![WebGPU](https://img.shields.io/badge/WebGPU-required-005A9C)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![pnpm](https://img.shields.io/badge/pnpm-F69220?logo=pnpm&logoColor=white)
+![vgpu](https://img.shields.io/badge/vgpu-%5E0.3.1-black)
+![TypeGPU](https://img.shields.io/badge/TypeGPU-%5E0.12.4-black)
+[![License](https://img.shields.io/github/license/Markcial/gpu-in-html)](LICENSE)
+
+<!-- TODO(Marc): if you publish the gallery (e.g. GitHub Pages), add a "Live gallery" badge here. -->
+
+</div>
+
+## 🖼️ Gallery
+
+<table>
+<tr><td align="center" width="33%"><a href="examples/01-gradient/"><img src="public/stills/01-gradient.png" alt="Gradient" width="100%"></a><br><sub><b>01 · Gradient</b><br><code>palette</code> · <code>polar</code> · <code>starter</code></sub></td><td align="center" width="33%"><a href="examples/02-cloud-form/"><img src="public/stills/02-cloud-form.png" alt="Cloud form" width="100%"></a><br><sub><b>02 · Cloud form</b><br><code>sdf</code> · <code>dom-coupled</code> · <code>noise</code></sub></td><td align="center" width="33%"><a href="examples/03-tetsuo/"><img src="public/stills/03-tetsuo.png" alt="Mutation" width="100%"></a><br><sub><b>03 · Mutation</b><br><code>raymarch</code> · <code>sdf-3d</code> · <code>voronoi</code> · <code>subsurface</code></sub></td></tr>
+<tr><td align="center" width="33%"><a href="examples/04-organ/"><img src="public/stills/04-organ.png" alt="Endoluminal intake" width="100%"></a><br><sub><b>04 · Endoluminal intake</b><br><code>raymarch</code> · <code>interior</code> · <code>heartbeat</code> · <code>scroll-coupled</code></sub></td><td align="center" width="33%"><a href="examples/05-forge/"><img src="public/stills/05-forge.png" alt="Forge" width="100%"></a><br><sub><b>05 · Forge</b><br><code>typegpu</code> · <code>composition</code> · <code>raymarch</code> · <code>codegen</code></sub></td><td align="center" width="33%"><a href="examples/06-street/"><img src="public/stills/06-street.png" alt="Street works" width="100%"></a><br><sub><b>06 · Street works</b><br><code>raymarch</code> · <code>dom-coupled</code> · <code>scroll-coupled</code> · <code>isometric</code></sub></td></tr>
+<tr><td align="center" width="33%"><a href="examples/07-marginalia/"><img src="public/stills/07-marginalia.png" alt="Marginalia" width="100%"></a><br><sub><b>07 · Marginalia</b><br><code>dom-coupled</code> · <code>text</code> · <code>uniform-array</code> · <code>scroll-coupled</code></sub></td><td align="center" width="33%"><a href="examples/08-windtunnel/"><img src="public/stills/08-windtunnel.png" alt="Wind tunnel" width="100%"></a><br><sub><b>08 · Wind tunnel</b><br><code>compute</code> · <code>storage</code> · <code>instancing</code> · <code>dom-coupled</code></sub></td><td align="center" width="33%"><a href="examples/09-culture/"><img src="public/stills/09-culture.png" alt="Culture" width="100%"></a><br><sub><b>09 · Culture</b><br><code>feedback</code> · <code>ping-pong</code> · <code>reaction-diffusion</code> · <code>dom-coupled</code></sub></td></tr>
+</table>
+
+<sub>Thumbnails are committed in <code>public/stills/</code> and rendered headless with <code>pnpm stills</code>.</sub>
+
+## ✨ Highlights
+
+- 🌳 **Tree-shaken at build time**: vgpu resolves the import graph, drops what an entry shader does not use, and emits compact WGSL.
+- 🔗 **DOM-coupled shaders**: forms, text line boxes and `data-solid` elements are measured and handed to the GPU as uniforms.
+- 🖨️ **Headless rendering through Dawn**: any frame, at any resolution, without a browser.
+- ⚙️ **Compute, ping-pong and instancing examples**: 20,000 particles in `08-windtunnel`, Gray-Scott reaction-diffusion in `09-culture`.
+- 🛠️ **TypeGPU at build time**: `05-forge` composes scenes as values and writes an ordinary `.wgsl` module (bundle 183 kB → 14.5 kB).
+
+## 📁 Layout
 
 The library is **pure WGSL**. `@gpu-in-html/wgsl` ships `.wgsl` modules and
 nothing else — no TypeScript, no runtime. vgpu resolves the import graph, drops
 what an entry shader does not use, and emits compact WGSL at build time.
 
-```
+```text
 index.html           the gallery
 site/gallery.ts      builds the cards from examples/manifest.json
 packages/wgsl/       @gpu-in-html/wgsl — the library
@@ -18,7 +55,7 @@ public/stills/       committed thumbnails, rendered by `pnpm stills`
 scripts/             shader validation, headless rendering
 ```
 
-## Run it
+## 🚀 Run it
 
 ```bash
 pnpm install
@@ -39,7 +76,7 @@ gallery grows a card, and `pnpm stills` renders its thumbnail.
 WebGPU is required. If `init()` throws, the example prints the error on the
 page instead of leaving a black canvas.
 
-## Render headless
+## 🖨️ Render headless
 
 The same entry shader renders without a browser, through Dawn:
 
@@ -58,13 +95,14 @@ against a committed PNG. Not wired into CI yet — the GitHub runner needs
 `npx vgpu install-software-renderer` for deterministic output, which has not
 been verified here.
 
-## Using the primitives
+## 🧩 Using the primitives
 
 Import them by package path from any entry shader:
 
 ```wgsl
 import { centered, polar } from "@gpu-in-html/wgsl/space";
-import { paletteDefault, tonemapAces, linearToSrgb } from "@gpu-in-html/wgsl/color";
+import { paletteDefault } from "@gpu-in-html/wgsl/color";
+import { linearToSrgb3, tonemapAces } from "@vgpu/wgsl-std/color";
 
 struct Params {
   resolution: vec2f,
@@ -76,7 +114,7 @@ struct Params {
 @fragment
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let p = centered(uv, params.resolution);
-  return vec4f(linearToSrgb(tonemapAces(paletteDefault(polar(p).y))), 1.0);
+  return vec4f(linearToSrgb3(tonemapAces(paletteDefault(polar(p).y))), 1.0);
 }
 ```
 
@@ -98,7 +136,7 @@ transfer functions and tonemapping from `@vgpu/wgsl-std/color`
 (`srgbToLinear3`, `linearToSrgb3`, `tonemapAces`), and scalar helpers from
 `@vgpu/wgsl-std/math`. Check there before adding anything here.
 
-## Examples
+## 🧪 Examples
 
 | | |
 | --- | --- |
@@ -119,7 +157,7 @@ other way in dark scenes: sRGB `0.06` is linear `0.004`, which a vignette and a
 contrast curve will finish off entirely. A dim-but-readable room wants to be
 authored around sRGB `0.2`, not `0.05`.
 
-## Coupling the page to the shader
+## 🔗 Coupling the page to the shader
 
 Two examples do it, and both do the same thing: read something the browser
 already knows and hand it to the shader as a uniform.
@@ -154,7 +192,7 @@ the CSS: pull the accent off full saturation, the text off pure white, and the
 field fills down to a few percent. Anything that stays crisp and pure against
 tissue reads as chrome dropped on top of it.
 
-### The DOM can be sandwiched between two canvases
+### 🥪 The DOM can be sandwiched between two canvases
 
 A canvas is not restricted to sitting behind the page. Give a second one a
 `z-index` above the content and `pointer-events: none`, create its surface with
@@ -203,7 +241,7 @@ Three things to get right:
   `preventDefault`, and saying so lets the browser keep scrolling on the
   compositor instead of waiting on the handler.
 
-## Raymarching
+## 🔦 Raymarching
 
 There is no `march()` or `normalAt()` in this package, and there cannot be:
 both have to call *your* scene function, and WGSL has neither function pointers
@@ -216,7 +254,7 @@ Displacing an SDF with noise breaks the Lipschitz bound the marcher relies on,
 so a full-length step will tunnel through thin features. Scaling the returned
 distance down (`return d * 0.55`) is the standard fix.
 
-### TypeGPU could lift that restriction — spike notes
+### 🧪 TypeGPU could lift that restriction — spike notes
 
 Spiked against typegpu 0.12.4 and vgpu 0.3.1. What was verified, by running it:
 
@@ -292,7 +330,7 @@ Still untested: TGSL, where shader bodies are `'use gpu'` TypeScript rather
 than WGSL strings. That is where the types-instead-of-documentation argument
 would actually pay off, and it needs the build plugin.
 
-### Decided: split by domain, not by layer
+### ✅ Decided: split by domain, not by layer
 
 Rendering stays with vgpu. Compute, if and when this repository grows any, goes
 to TypeGPU — that is what it is for, and its typed buffers infer TypeScript
@@ -440,7 +478,7 @@ the surface noise scroll, not the peristalsis rate, was the main offender —
 and took the motion above the grain floor from 4.9 points to 1.2 over three
 seconds while leaving it visibly alive.
 
-## Authoring rules
+## 📏 Authoring rules
 
 Three rules, and the first is enforced by vgpu itself:
 
@@ -458,9 +496,21 @@ Three rules, and the first is enforced by vgpu itself:
 WebGPU texture coordinates. Porting a y-up shader? Call `flipY` once at the
 boundary and stay flip-free after that.
 
-## Adding a primitive
+## ➕ Adding a primitive
 
 1. Write it in the right module under `packages/wgsl/src/`, or add a new module
    and register it in that package's `exports` map.
 2. Use it from an example. A primitive with no caller is not verified.
 3. `pnpm verify`.
+
+## 📄 License
+
+[MIT](LICENSE) © 2026 Marc Garcia.
+
+---
+
+<div align="center">
+
+Made by **Marc Garcia** · [marcgarcia.dev](https://marcgarcia.dev) · [@_marc_garcia on X](https://x.com/_marc_garcia) · [GitHub](https://github.com/Markcial)
+
+</div>
