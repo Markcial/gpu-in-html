@@ -15,7 +15,10 @@ const examplePages = Object.fromEntries(
     .map((entry) => [entry.name, resolve(examplesDir, entry.name, "index.html")]),
 );
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  // Project Pages is served at /gpu-in-html/. `vite build` and `vite preview`
+  // both run in production mode; `pnpm dev` stays at / on localhost.
+  base: mode === "production" ? "/gpu-in-html/" : "/",
   plugins: [wgslVitePlugin()],
   build: {
     // init() is awaited at the top level. Vite's default target (es2020)
@@ -28,4 +31,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

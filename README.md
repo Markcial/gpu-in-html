@@ -13,8 +13,7 @@
 ![vgpu](https://img.shields.io/badge/vgpu-%5E0.3.1-black)
 ![TypeGPU](https://img.shields.io/badge/TypeGPU-%5E0.12.4-black)
 [![License](https://img.shields.io/github/license/Markcial/gpu-in-html)](LICENSE)
-
-<!-- TODO(Marc): if you publish the gallery (e.g. GitHub Pages), add a "Live gallery" badge here. -->
+[![Live demos](https://img.shields.io/badge/Live_demos-markcial.github.io-005A9C)](https://markcial.github.io/gpu-in-html/)
 
 </div>
 
@@ -60,6 +59,11 @@ pnpm install
 pnpm dev        # the gallery, with every example on the same server
 pnpm verify     # validate every shader, typecheck, build the whole site
 ```
+
+Live demos, once GitHub Pages is publishing this site:
+[https://markcial.github.io/gpu-in-html/](https://markcial.github.io/gpu-in-html/).
+Chrome or Edge. The production build is rooted at `/gpu-in-html/`; `pnpm preview`
+serves it there.
 
 `pnpm dev` serves the gallery at `/` and each example at
 `/examples/<slug>/` — one Vite app rooted at the repository, one port, and
