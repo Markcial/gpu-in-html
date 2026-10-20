@@ -54,6 +54,20 @@
         line-height: 1.6;
       }
 
+      header p + p {
+        margin-top: 14px;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      a:focus-visible,
+      .card:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+
       code {
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 0.92em;
@@ -171,18 +185,23 @@
       <header>
         <h1>gpu-in-html</h1>
         <p>
-          Reusable pure-WGSL primitives for
-          <a href="https://vgpu.sh" style="color: var(--accent)">vgpu</a>, and the examples built on
-          them. Every card opens a live WebGPU page — click through, then read its
-          <code>.wgsl</code> next to it.
+          Nine WebGPU experiments for
+          <a href="https://vgpu.sh">vgpu</a>. Open one in the browser — the page and the shader
+          share the same measurements.
+        </p>
+        <p>
+          <a href="https://github.com/Markcial/gpu-in-html">Source on GitHub</a>
         </p>
       </header>
 
       <div id="grid"></div>
 
       <footer>
-        Thumbnails are rendered headless through Dawn by <code>pnpm stills</code>, from the same
-        shaders the pages run — not screenshots. Requires a browser with WebGPU.
+        Needs WebGPU, so use Chrome or Edge. If a demo cannot get an adapter, it prints the error
+        on the page instead of leaving a black canvas. Thumbnails are headless renders from
+        <code>pnpm stills</code>, not screenshots.
+        <br />
+        <a href="https://github.com/Markcial/gpu-in-html">Markcial/gpu-in-html</a>
       </footer>
     </div>
 

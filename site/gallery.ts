@@ -12,6 +12,20 @@ interface Example {
   still?: unknown;
 }
 
+// One sentence each. The manifest blurbs are the long notes; the landing
+// page only needs enough to choose a demo.
+const summaries: Record<string, string> = {
+  "01-gradient": "A fullscreen fragment shader: a cosine palette swept around the polar angle.",
+  "02-cloud-form": "A real HTML form whose chrome is a cloud drawn by the shader.",
+  "03-tetsuo": "A raymarched arm coming apart, driven by a slider on the page.",
+  "04-organ": "Inside a living cylinder, with a form that presses on the wall as you scroll.",
+  "05-forge": "A scene composed in TypeScript and written out as ordinary WGSL.",
+  "06-street": "An isometric block that clears a plaza under the form.",
+  "07-marginalia": "A page that highlights its own lines, one rectangle per line box.",
+  "08-windtunnel": "Twenty thousand particles of air blowing around the controls on the page.",
+  "09-culture": "A Gray-Scott reaction that grows up to the text and stops.",
+};
+
 const grid = document.querySelector<HTMLDivElement>("#grid");
 if (!grid) throw new Error("Missing #grid");
 
@@ -50,7 +64,7 @@ if (examples.length === 0) {
     title.textContent = example.title;
 
     const blurb = document.createElement("p");
-    blurb.textContent = example.blurb;
+    blurb.textContent = summaries[example.slug] ?? example.blurb;
 
     const tags = document.createElement("div");
     tags.className = "tags";
